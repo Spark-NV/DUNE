@@ -17,7 +17,8 @@ class HomePreferencesScreen : OptionsFragment() {
 	override val screen by optionsScreen {
 		setTitle(R.string.home_prefs)
 
-		category {
+		// Customization section hidden
+		/*category {
 			setTitle(R.string.customization)
 
 			checkbox {
@@ -25,13 +26,13 @@ class HomePreferencesScreen : OptionsFragment() {
 				setContent(R.string.desc_my_media_extra_small)
 				bind(userSettingPreferences, userSettingPreferences.useExtraSmallMediaFolders)
 			}
-		}
+
+		}*/
 
 		category {
 			setTitle(R.string.home_sections)
 
 			listOf(
-				userSettingPreferences.homesection0,
 				userSettingPreferences.homesection1,
 				userSettingPreferences.homesection2,
 				userSettingPreferences.homesection3,
@@ -43,7 +44,7 @@ class HomePreferencesScreen : OptionsFragment() {
 				userSettingPreferences.homesection9
 			).forEachIndexed { index, sectionPref ->
 				enum<HomeSectionType> {
-					title = getString(R.string.home_section_i, index + 1)
+					title = getString(R.string.shelf_i, index + 1)
 					bind(userSettingPreferences, sectionPref)
 				}
 			}

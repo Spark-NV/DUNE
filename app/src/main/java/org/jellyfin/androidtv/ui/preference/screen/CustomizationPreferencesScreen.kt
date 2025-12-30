@@ -35,14 +35,15 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 			withFragment<EnhancedTweaksPreferencesScreen>()
 		}
 
-		category {
+		// Language settings removed
+		/*category {
 			link {
 				setTitle(R.string.pref_language)
 				setContent(R.string.pref_language_summary)
 				icon = R.drawable.ic_language
 				withFragment<LanguagePreferencesScreen>()
 			}
-		}
+		}*/
 
 		category {
 			setTitle(R.string.pref_browsing)
@@ -62,23 +63,26 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 			}
 
 
-				enum<WatchedIndicatorBehavior> {
+				// Show watched indicators removed
+				/*enum<WatchedIndicatorBehavior> {
 					setTitle(R.string.pref_watched_indicator)
 					bind(userPreferences, UserPreferences.watchedIndicatorBehavior)
-				}
+				}*/
 
-				checkbox {
+				// Show resolution badge removed
+				/*checkbox {
 					setTitle(R.string.pref_show_resolution_badge)
 					bind(userPreferences, UserPreferences.showResolutionBadge)
-				}
+				}*/
 
 				// audio codec badge will be added when i figure out better a look for them
 
 
-				enum<RatingType> {
+				// Default rating type removed
+				/*enum<RatingType> {
 					setTitle(R.string.pref_default_rating)
 					bind(userPreferences, UserPreferences.defaultRatingType)
-				}
+				}*/
 
 
 				checkbox {
@@ -111,17 +115,19 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 				}
 
 
-				checkbox {
+				// Show season premiers removed
+				/*checkbox {
 					setTitle(R.string.lbl_show_premieres)
 					setContent(R.string.desc_premieres)
 					bind(userPreferences, UserPreferences.premieresEnabled)
-				}
+				}*/
 
-				checkbox {
+				// Enable media management removed
+				/*checkbox {
 					setTitle(R.string.pref_enable_media_management)
 					setContent(R.string.pref_enable_media_management_description)
 					bind(userPreferences, UserPreferences.mediaManagementEnabled)
-				}
+				}*/
 			}
 
 		category {
@@ -162,7 +168,8 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 				depends { userPreferences[UserPreferences.screensaverInAppEnabled] }
 			}
 
-			checkbox {
+			// Require age rating removed (already defaults to disabled)
+			/*checkbox {
 				setTitle(R.string.pref_screensaver_ageratingrequired_title)
 				setContent(
 					R.string.pref_screensaver_ageratingrequired_enabled,
@@ -170,9 +177,10 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 				)
 
 				bind(userPreferences, UserPreferences.screensaverAgeRatingRequired)
-			}
+			}*/
 
-			list {
+			// Minimum age rating removed
+			/*list {
 				setTitle(R.string.pref_screensaver_ageratingmax)
 
 				// Note: Must include 13 (default value)
@@ -191,10 +199,11 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 					set { value -> userPreferences[UserPreferences.screensaverAgeRatingMax] = value.toInt() }
 					default { UserPreferences.screensaverAgeRatingMax.defaultValue.toString() }
 				}
-			}
+			}*/
 		}
 
-		category {
+		// Entire behavior section removed
+		/*category {
 			setTitle(R.string.pref_behavior)
 
 			shortcut {
@@ -206,6 +215,6 @@ class CustomizationPreferencesScreen : OptionsFragment() {
 				setTitle(R.string.pref_subtitle_track_button)
 				bind(userPreferences, UserPreferences.shortcutSubtitleTrack)
 			}
-		}
+		}*/
 	}
 }

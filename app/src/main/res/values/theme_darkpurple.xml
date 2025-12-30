@@ -94,7 +94,7 @@
         <item name="tile_port_guide_bg">@color/dark_purple_tile_bg</item>
 
         <!-- Focus Border Color -->
-        <item name="focusBorderColor">@color/white</item>
+        <item name="focusBorderColor">@color/yellow</item>
 
         <!-- Media Folders Buttons -->
         <item name="mediaFolderButtonBackground">@android:color/transparent</item>

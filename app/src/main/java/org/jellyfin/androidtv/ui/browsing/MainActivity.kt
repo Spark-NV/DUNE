@@ -76,11 +76,8 @@ class MainActivity : FragmentActivity() {
 			if (navigationRepository.canGoBack) {
 				navigationRepository.goBack()
 				isAtRoot = !navigationRepository.canGoBack
-			} else if (isAtRoot) {
-				showExitConfirmation()
 			} else {
-				// Shouldn't normally get here, but just in case
-				finish()
+				showExitConfirmation()
 			}
 		}
 	}
@@ -213,6 +210,9 @@ class MainActivity : FragmentActivity() {
 
 		screensaverViewModel.activityPaused = false
 
+		// Sync isAtRoot with actual navigation state after returning from external activities
+		isAtRoot = !navigationRepository.canGoBack
+
 		// Ensure WebSocket connection is active
 		lifecycleScope.launch(Dispatchers.IO) {
 			try {
@@ -223,12 +223,8 @@ class MainActivity : FragmentActivity() {
 			}
 		}
 
-		// Handle any pending intents when the activity is resumed
-		intent?.let { currentIntent ->
-			if (currentIntent.hasExtra("ItemId")) {
-				handleIntent(currentIntent)
-			}
-		}
+		// Note: Intent processing is handled in onNewIntent only to avoid resetting navigation state
+		// when returning from external activities
 	}
 
 	private fun validateAuthentication(): Boolean {

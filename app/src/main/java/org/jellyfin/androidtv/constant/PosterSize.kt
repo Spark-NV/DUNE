@@ -7,6 +7,18 @@ enum class PosterSize(
 	override val nameRes: Int,
 ) : PreferenceEnum {
 	/**
+	 * Extra Extra Extra Smallest.
+	 */
+	XXX_SMALLEST(R.string.image_size_xxxsmallest),
+	/**
+	 * Extra Extra Smallest.
+	 */
+	XX_SMALLEST(R.string.image_size_xxsmallest),
+	/**
+	 * Extra Smallest.
+	 */
+	X_SMALLEST(R.string.image_size_xsmallest),
+	/**
 	 * Smallest.
 	 */
 	SMALLEST(R.string.image_size_smallest),

@@ -21,7 +21,7 @@ fun OptionsScreen.aboutCategory() = category {
     setTitle(R.string.pref_about_title)
 
     link {
-        title = "Dune app version"
+        title = "Lumina app version"
         content = CURRENT_VERSION
         icon = R.drawable.dune_icon
     }
@@ -34,11 +34,12 @@ fun OptionsScreen.aboutCategory() = category {
         }
     }
 
-    link {
+    // Device model removed
+    /*link {
         setTitle(R.string.pref_device_model)
         content = "${Build.MANUFACTURER} ${Build.MODEL}"
         icon = R.drawable.ic_device
-    }
+    }*/
 
     link {
         setTitle(R.string.licenses_link)

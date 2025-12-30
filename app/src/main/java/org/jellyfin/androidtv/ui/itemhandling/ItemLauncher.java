@@ -134,6 +134,11 @@ public class ItemLauncher {
                 switch (baseItem.getType()) {
                     case USER_VIEW:
                     case COLLECTION_FOLDER:
+                        // Special handling for search item
+                        if ("12345678-1234-1234-1234-123456789abc".equals(baseItem.getId().toString())) {
+                            navigationRepository.getValue().navigate(Destinations.INSTANCE.search(null));
+                            return;
+                        }
                         launchUserView(baseItem);
                         return;
                     case SERIES:

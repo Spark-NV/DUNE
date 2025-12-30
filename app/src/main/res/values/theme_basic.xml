@@ -7,6 +7,9 @@
         <item name="defaultBackground">@color/black</item>
         <item name="android:textColor">@android:color/white</item>
 
+        <!-- Focus Border Color -->
+        <item name="focusBorderColor">@color/yellow</item>
+
         <!-- Basic widget styles -->
         <item name="buttonStyle">@style/Widget.Basic.Button</item>
         <item name="progressBarStyle">@style/Widget.Basic.ProgressBar</item>
@@ -36,7 +39,7 @@
         <item name="android:textColorHint">#80FFFFFF</item>
         <!-- Media Folders Buttons -->
         <item name="mediaFolderButtonBackground">@android:color/transparent</item>
-        <item name="mediaFolderButtonFocusedBackground">#4DFFFFFF</item>
+        <item name="mediaFolderButtonFocusedBackground">@drawable/media_folder_button_focused</item>
         <item name="mediaFolderButtonTextColor">@android:color/white</item>
         <item name="mediaFolderButtonFocusedTextColor">@android:color/black</item>
     </style>

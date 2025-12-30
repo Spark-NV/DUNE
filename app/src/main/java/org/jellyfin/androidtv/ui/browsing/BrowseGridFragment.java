@@ -187,11 +187,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
     private DimensionCache mDimensionCache = null;
     private boolean mIsScrolling = false;
 
-    private ImageButton mSortButton;
-    private ImageButton mSettingsButton;
-    private ImageButton mUnwatchedButton;
-    private ImageButton mFavoriteButton;
-    private ImageButton mLetterButton;
     private ImageButton mMasksButton;
     private VerticalAlphaPickerView mAlphabetSidebar;
     private Map<Integer, SortOption> sortOptions;
@@ -658,6 +653,15 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
                 numCols = 1;
             } else {
                 switch (posterSize) {
+                    case XXX_SMALLEST:
+                        numCols = imageType.equals(ImageType.BANNER) ? 13 : imageType.equals(ImageType.THUMB) ? 23 : 30;
+                        break;
+                    case XX_SMALLEST:
+                        numCols = imageType.equals(ImageType.BANNER) ? 10 : imageType.equals(ImageType.THUMB) ? 18 : 24;
+                        break;
+                    case X_SMALLEST:
+                        numCols = imageType.equals(ImageType.BANNER) ? 8 : imageType.equals(ImageType.THUMB) ? 14 : 19;
+                        break;
                     case SMALLEST:
                         numCols = imageType.equals(ImageType.BANNER) ? 6 : imageType.equals(ImageType.THUMB) ? 11 : 15;
                         break;
@@ -681,6 +685,15 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         } else if (mGridPresenter instanceof HorizontalGridPresenter) {
             int numRows;
             switch (posterSize) {
+                case XXX_SMALLEST:
+                    numRows = imageType.equals(ImageType.BANNER) ? 25 : imageType.equals(ImageType.THUMB) ? 14 : 10;
+                    break;
+                case XX_SMALLEST:
+                    numRows = imageType.equals(ImageType.BANNER) ? 20 : imageType.equals(ImageType.THUMB) ? 11 : 8;
+                    break;
+                case X_SMALLEST:
+                    numRows = imageType.equals(ImageType.BANNER) ? 16 : imageType.equals(ImageType.THUMB) ? 9 : 6;
+                    break;
                 case SMALLEST:
                     numRows = imageType.equals(ImageType.BANNER) ? 13 : imageType.equals(ImageType.THUMB) ? 7 : 5;
                     break;
@@ -829,7 +842,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
     }
 
     private void buildAdapter() {
-        mCardPresenter = new CardPresenter(true, mImageType, mCardHeight, mGridDirection.equals(GridDirection.LIST));
+        mCardPresenter = new CardPresenter(true, mImageType, mCardHeight, mGridDirection.equals(GridDirection.LIST), mPosterSizeSetting);
         mCardPresenter.setUniformAspect(true);
         int chunkSize = mRowDef.getChunkSize();
         if (mCardsScreenEst > 0 && mCardsScreenEst >= chunkSize) {
@@ -859,7 +872,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
                     setItem(null);
                     updateCounter(mAdapter.getTotalItems() > 0 ? 1 : 0);
                 }
-                mLetterButton.setVisibility(View.VISIBLE);
                 if (mAdapter.getItemsLoaded() > 0 && mGridView != null && mGridView.isAttachedToWindow()) {
                     mGridView.setFocusable(true);
                     mGridView.requestFocus();
@@ -888,14 +900,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
 
     private void addTools() {
         int size = Utils.convertDpToPixel(requireContext(), 27);
-        mSortButton = createToolbarButton(R.drawable.ic_sort, getString(R.string.lbl_sort_by), "Filter", size, v -> showSortMenu());
         mMasksButton = createToolbarButton(R.drawable.ic_masks, getString(R.string.lbl_genres), "Genres", size, v -> showGenreMenu());
-        mUnwatchedButton = createToolbarButton(R.drawable.ic_unwatch, getString(R.string.lbl_unwatched), "Watched", size, v -> toggleUnwatchedFilter());
-        mFavoriteButton = createToolbarButton(R.drawable.ic_heart, getString(R.string.lbl_favorite), "Favorites", size, v -> toggleFavoriteFilter());
-        mLetterButton = createToolbarButton(R.drawable.ic_jump_letter, getString(R.string.lbl_by_letter), "By letter", size, v -> new JumplistPopup().show());
-        mSettingsButton = createToolbarButton(R.drawable.ic_settings, getString(R.string.lbl_settings), "Settings", size, v -> openSettings());
-        mUnwatchedButton.setActivated(mAdapter.getFilters().isUnwatchedOnly());
-        mFavoriteButton.setActivated(mAdapter.getFilters().isFavoriteOnly());
     }
 
     private ImageButton createToolbarButton(int iconRes, String contentDesc, String label, int size, View.OnClickListener clickListener) {
@@ -997,25 +1002,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         genreMenu.show();
     }
 
-    private void toggleUnwatchedFilter() {
-        FilterOptions filters = mAdapter.getFilters();
-        if (filters == null) filters = new FilterOptions();
-        filters.setUnwatchedOnly(!filters.isUnwatchedOnly());
-        mUnwatchedButton.setActivated(filters.isUnwatchedOnly());
-        mAdapter.setFilters(filters);
-        mAdapter.Retrieve();
-        updateDisplayPrefs();
-    }
-
-    private void toggleFavoriteFilter() {
-        FilterOptions filters = mAdapter.getFilters();
-        if (filters == null) filters = new FilterOptions();
-        filters.setFavoriteOnly(!filters.isFavoriteOnly());
-        mFavoriteButton.setActivated(filters.isFavoriteOnly());
-        mAdapter.setFilters(filters);
-        mAdapter.Retrieve();
-        updateDisplayPrefs();
-    }
 
     private void openSettings() {
         boolean allowViewSelection = userViewsRepository.getValue().allowViewSelection(mFolder.getCollectionType());

@@ -17,6 +17,7 @@ import androidx.leanback.widget.Presenter;
 
 import org.jellyfin.androidtv.R;
 import org.jellyfin.androidtv.constant.ImageType;
+import org.jellyfin.androidtv.constant.PosterSize;
 import org.jellyfin.androidtv.preference.UserPreferences;
 import org.jellyfin.androidtv.preference.constant.RatingType;
 import org.jellyfin.androidtv.preference.constant.WatchedIndicatorBehavior;
@@ -48,6 +49,7 @@ import coil3.request.ImageRequest;
 public class CardPresenter extends Presenter {
     private int mStaticHeight = 150;
     private ImageType mImageType = ImageType.POSTER;
+    private PosterSize mPosterSize = PosterSize.MED; // Default poster size
     private double aspect;
     private boolean mShowInfo = true;
     private boolean isUserView = false;
@@ -88,6 +90,11 @@ public class CardPresenter extends Presenter {
         this.isListLayout = isListLayout;
     }
 
+    public CardPresenter(boolean showInfo, ImageType imageType, int staticHeight, boolean isListLayout, PosterSize posterSize) {
+        this(showInfo, imageType, staticHeight, isListLayout);
+        mPosterSize = posterSize;
+    }
+
     public CardPresenter(boolean showInfo, int staticHeight) {
         this(showInfo);
         mStaticHeight = staticHeight;
@@ -99,6 +106,10 @@ public class CardPresenter extends Presenter {
 
     public void setListLayout(boolean isListLayout) {
         this.isListLayout = isListLayout;
+    }
+
+    public void setPosterSize(PosterSize posterSize) {
+        mPosterSize = posterSize;
     }
 
     public class ViewHolder extends Presenter.ViewHolder {
@@ -143,6 +154,7 @@ public class CardPresenter extends Presenter {
 
         public void setItem(BaseRowItem m, ImageType imageType, int lHeight, int pHeight, int sHeight) {
             mItem = m;
+            mImageType = imageType; // Store image type for use in calculations
             isUserView = false;
             switch (mItem.getBaseRowType()) {
 
@@ -257,25 +269,54 @@ public class CardPresenter extends Presenter {
                     cardHeight = !m.getStaticHeight() ? (aspect > 1 ? lHeight : pHeight) : sHeight;
                     cardWidth = (int) (aspect * cardHeight);
 
-                    // For List layout, use specific dimensions for each image type
-                    if (isListLayout && mImageType != null) {
-                        switch (mImageType) {
+                    // For List layout, use specific dimensions for each image type, scaled by PosterSize
+                    if (CardPresenter.this.isListLayout && CardPresenter.this.mImageType != null) {
+                        int baseWidth;
+                        switch (CardPresenter.this.mImageType) {
                             case POSTER:
-                                cardWidth = 190;
-                                cardHeight = (int) Math.round(cardWidth / aspect);
+                                baseWidth = 190;
                                 break;
                             case BANNER:
-                                cardWidth = 90;
-                                cardHeight = (int) Math.round(cardWidth / aspect);
+                                baseWidth = 90;
                                 break;
                             case THUMB:
-                                cardWidth = 300;
-                                cardHeight = (int) Math.round(cardWidth / aspect);
+                                baseWidth = 300;
                                 break;
                             default:
-                                // Use calculated dimensions for other types
+                                baseWidth = 190;
                                 break;
                         }
+                        
+                        double scaleFactor = 1.0;
+                        switch (CardPresenter.this.mPosterSize) {
+                            case XXX_SMALLEST:
+                                scaleFactor = 0.75 * 0.75 * 0.75; // 42%
+                                break;
+                            case XX_SMALLEST:
+                                scaleFactor = 0.75 * 0.75; // 56%
+                                break;
+                            case X_SMALLEST:
+                                scaleFactor = 0.75; // 75%
+                                break;
+                            case SMALLEST:
+                                scaleFactor = 1.0; // 100% (base)
+                                break;
+                            case SMALL:
+                                scaleFactor = 1.0; // Same as SMALLEST for list view
+                                break;
+                            case MED:
+                                scaleFactor = 1.0; // Same as SMALLEST for list view
+                                break;
+                            case LARGE:
+                                scaleFactor = 1.0; // Same as SMALLEST for list view
+                                break;
+                            case X_LARGE:
+                                scaleFactor = 1.0; // Same as SMALLEST for list view
+                                break;
+                        }
+                        
+                        cardWidth = (int) Math.round(baseWidth * scaleFactor);
+                        cardHeight = (int) Math.round(cardWidth / aspect);
                     }
 
                     if (cardWidth < 5) {
@@ -353,7 +394,7 @@ public class CardPresenter extends Presenter {
                     }
                     if (mCardView instanceof LegacyImageCardView) {
                         ((LegacyImageCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
-                    } else if (mCardView instanceof InfoUnderSummaryCardView && isListLayout) {
+                    } else if (mCardView instanceof InfoUnderSummaryCardView && CardPresenter.this.isListLayout) {
                         ((InfoUnderSummaryCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
                     }
                     break;
@@ -372,7 +413,7 @@ public class CardPresenter extends Presenter {
                         ((LegacyImageCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
                         // Channel logos should fit within the view
                         ((LegacyImageCardView) mCardView).getMainImageView().setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    } else if (mCardView instanceof InfoUnderSummaryCardView && isListLayout) {
+                    } else if (mCardView instanceof InfoUnderSummaryCardView && CardPresenter.this.isListLayout) {
                         ((InfoUnderSummaryCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
                     }
                     mDefaultCardImage = ContextCompat.getDrawable(mCardView.getContext(), R.drawable.tile_tv);
@@ -395,7 +436,7 @@ public class CardPresenter extends Presenter {
                     }
                     if (mCardView instanceof LegacyImageCardView) {
                         ((LegacyImageCardView) mCardView).setMainImageDimensions(192, 129, ImageView.ScaleType.CENTER_INSIDE);
-                    } else if (mCardView instanceof InfoUnderSummaryCardView && isListLayout) {
+                    } else if (mCardView instanceof InfoUnderSummaryCardView && CardPresenter.this.isListLayout) {
                         ((InfoUnderSummaryCardView) mCardView).setMainImageDimensions(192, 129);
                     }
                     mDefaultCardImage = CardPresenter.this.cachedFakeBlur;
@@ -412,7 +453,7 @@ public class CardPresenter extends Presenter {
                     }
                     if (mCardView instanceof LegacyImageCardView) {
                         ((LegacyImageCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
-                    } else if (mCardView instanceof InfoUnderSummaryCardView && isListLayout) {
+                    } else if (mCardView instanceof InfoUnderSummaryCardView && CardPresenter.this.isListLayout) {
                         ((InfoUnderSummaryCardView) mCardView).setMainImageDimensions(cardWidth, cardHeight);
                     }
                     mDefaultCardImage = CardPresenter.this.cachedTileTv;
@@ -624,26 +665,31 @@ public class CardPresenter extends Presenter {
     private String getEpisodeCardName(BaseRowItem rowItem, Context context) {
         BaseItemDto itemDto = rowItem.getBaseItem();
         if (itemDto != null && itemDto.getType() == BaseItemKind.EPISODE) {
-            StringBuilder cardName = new StringBuilder();
-            if (itemDto.getName() != null && !itemDto.getName().isEmpty()) {
-                cardName.append(itemDto.getName());
-            }
-            if (itemDto.getParentIndexNumber() != null && itemDto.getIndexNumber() != null) {
-                cardName.append(" S").append(itemDto.getParentIndexNumber());
-                cardName.append("E");
-                if (itemDto.getIndexNumber() < 10) {
-                    cardName.append("0"); // Pad with leading zero
-                }
-                cardName.append(itemDto.getIndexNumber());
-            } else if (itemDto.getIndexNumber() != null) {
-                cardName.append(" E");
-                if (itemDto.getIndexNumber() < 10) {
-                    cardName.append("0"); // Pad with leading zero
-                }
-                cardName.append(itemDto.getIndexNumber());
-            }
+            // Return the series name for the title
+            return itemDto.getSeriesName();
+        }
+        return null;
+    }
 
-            return cardName.toString();
+    private String getEpisodeSubtitle(BaseRowItem rowItem, Context context) {
+        BaseItemDto itemDto = rowItem.getBaseItem();
+        if (itemDto != null && itemDto.getType() == BaseItemKind.EPISODE) {
+            StringBuilder subtitle = new StringBuilder();
+            if (itemDto.getParentIndexNumber() != null && itemDto.getIndexNumber() != null) {
+                subtitle.append("Season ").append(itemDto.getParentIndexNumber());
+                subtitle.append(" Episode ");
+                if (itemDto.getIndexNumber() < 10) {
+                    subtitle.append("0"); // Pad with leading zero
+                }
+                subtitle.append(itemDto.getIndexNumber());
+            } else if (itemDto.getIndexNumber() != null) {
+                subtitle.append("Episode ");
+                if (itemDto.getIndexNumber() < 10) {
+                    subtitle.append("0"); // Pad with leading zero
+                }
+                subtitle.append(itemDto.getIndexNumber());
+            }
+            return subtitle.toString();
         }
         return null;
     }
@@ -661,6 +707,7 @@ public class CardPresenter extends Presenter {
         // Initialize holder fields from presenter
         holder.aspect = aspect;
         holder.isUserView = isUserView;
+        holder.mIsListLayout = isListLayout; // Set list layout flag
         // Set basic card properties first
         holder.setItem(rowItem, mImageType, 130, 150, mStaticHeight);
 
@@ -678,9 +725,26 @@ public class CardPresenter extends Presenter {
                 // Set title, summary, and ratings
                 String cardName = getEpisodeCardName(rowItem, infoCardView.getContext());
                 infoCardView.setTitle(cardName != null ? cardName : rowItem.getCardName(infoCardView.getContext()));
-                infoCardView.setSummary(rowItem.getBaseItem() != null ? rowItem.getBaseItem().getOverview() : "");
 
+                // For episodes, include season/episode info in the summary
                 BaseItemDto itemDto = rowItem.getBaseItem();
+                String summaryText = "";
+                if (itemDto != null && itemDto.getType() == BaseItemKind.EPISODE) {
+                    String episodeSubtitle = getEpisodeSubtitle(rowItem, infoCardView.getContext());
+                    if (episodeSubtitle != null && !episodeSubtitle.isEmpty()) {
+                        summaryText = episodeSubtitle;
+                        String overview = itemDto.getOverview();
+                        if (overview != null && !overview.isEmpty()) {
+                            summaryText += "\n\n" + overview;
+                        }
+                    } else {
+                        summaryText = itemDto.getOverview() != null ? itemDto.getOverview() : "";
+                    }
+                } else {
+                    summaryText = itemDto != null ? itemDto.getOverview() != null ? itemDto.getOverview() : "" : "";
+                }
+                infoCardView.setSummary(summaryText);
+
                 if (itemDto != null) {
                     infoCardView.setCommunityRating(itemDto.getCommunityRating());
                     infoCardView.setCriticRating(itemDto.getCriticRating());
@@ -707,7 +771,12 @@ public class CardPresenter extends Presenter {
                 String cardName = getEpisodeCardName(rowItem, legacyCardView.getContext());
                 legacyCardView.setTitleText(cardName != null ? cardName : rowItem.getCardName(legacyCardView.getContext()));
 
-                if (rowItem.getBaseRowType() == BaseRowType.Person && rowItem.getSubText(legacyCardView.getContext()) != null) {
+                // Set subtitle for episodes to show "Season X Episode Y" format
+                BaseItemDto itemDto = rowItem.getBaseItem();
+                if (itemDto != null && itemDto.getType() == BaseItemKind.EPISODE) {
+                    String episodeSubtitle = getEpisodeSubtitle(rowItem, legacyCardView.getContext());
+                    legacyCardView.setContentText(episodeSubtitle != null ? episodeSubtitle : "");
+                } else if (rowItem.getBaseRowType() == BaseRowType.Person && rowItem.getSubText(legacyCardView.getContext()) != null) {
                     legacyCardView.setContentText(rowItem.getSubText(legacyCardView.getContext()));
                 } else {
                     legacyCardView.setContentText("");

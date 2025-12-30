@@ -1,6 +1,7 @@
 plugins {
 	id("com.android.application")
 	kotlin("android")
+	kotlin("plugin.parcelize")
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.kotlin.compose)
 	alias(libs.plugins.aboutlibraries)
@@ -21,7 +22,7 @@ android {
 		targetSdk = libs.versions.android.targetSdk.get().toInt()
 
 		// Release version
-		applicationId = "dune.enhanced.tv"
+		applicationId = "dune.lumina.tv"
 		versionName = project.getVersionName()
 		versionCode = getVersionCode(versionName!!)
 	}
@@ -82,7 +83,7 @@ android {
 
 		create("enhanced") {
 			dimension = "variant"
-			applicationId = "Dune.enhanced.tv"
+			applicationId = "Dune.lumina.tv"
 
 			// Set specific version name for enhanced variant
 			versionName = "0.1.1"
@@ -112,9 +113,9 @@ android {
 		variant.outputs.all {
 			val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
 			if (variantName == "enhanced") {
-				output.outputFileName = "Dune.androidtv-0.1.1.apk"
+				output.outputFileName = "Lumina-Jellyfin-${versionName}.apk"
 			} else {
-				output.outputFileName = "Dune.androidtv-${versionName}.apk"
+				output.outputFileName = "Lumina-Jellyfin-${versionName}.apk"
 			}
 		}
 	}
@@ -137,14 +138,12 @@ val versionTxt by tasks.registering {
 // Simple task to build the enhanced version
 tasks.register("buildEnhanced") {
 	group = "build"
-	description = "Builds the enhanced version with package ID: Dune.enhanced.tv"
+	description = "Builds the enhanced version with package ID: Dune.lumina.tv"
 	dependsOn("assembleEnhancedRelease")
 	doLast {
 		println("\nBuilding Enhanced version with:")
-		println("Package ID: Dune.enhanced.tv")
-		println("Version: 0.1.1")
-		println("App Name: DUNE")
-		println("Filename: Dune.androidtv-0.1.1.apk")
+		println("Package ID: Dune.lumina.tv")
+		println("App Name: Lumina")
 		println("The APK will be available in: app/build/outputs/apk/enhanced/release/")
 	}
 }

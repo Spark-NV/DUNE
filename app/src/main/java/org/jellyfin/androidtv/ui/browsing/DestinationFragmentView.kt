@@ -69,6 +69,7 @@ class DestinationFragmentView @JvmOverloads constructor(
 	}
 
 	private val history = Stack<HistoryEntry>()
+	private var pendingFocusRunnable: Runnable? = null
 
 	fun navigate(action: NavigationAction.NavigateFragment) {
 		val entry = HistoryEntry(action.destination.fragment.java, action.destination.arguments)
@@ -148,7 +149,11 @@ class DestinationFragmentView @JvmOverloads constructor(
 			setCustomAnimations(R.anim.fade_in, R.anim.fade_out, R.anim.fade_in, R.anim.fade_out)
 
 			// Clear focus from current fragment before detaching to prevent focus navigation crashes
-			fragmentManager.findFragmentByTag(FRAGMENT_TAG_CONTENT)?.view?.clearFocus()
+			fragmentManager.findFragmentByTag(FRAGMENT_TAG_CONTENT)?.view?.apply {
+				clearFocus()
+				// Also clear any pending focus requests that might be queued
+				removeCallbacks(null)
+			}
 
 			// Detach current fragment
 			fragmentManager.findFragmentByTag(FRAGMENT_TAG_CONTENT)?.let(::detach)

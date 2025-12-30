@@ -1,30 +1,28 @@
-<p align="center">
-  <img src="https://files.catbox.moe/jqk9rl.jpg" alt="DUNE" width="100%">
-</p>
-
-# DUNE - Jellyfin Android TV Client
+# Lumina - Jellyfin Android TV Client With Premiumize Streaming
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue?labelColor=555555&style=for-the-badge)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
-[![Latest Release](https://img.shields.io/github/v/release/Sam42a/DUNE?label=Latest%20Release&labelColor=555555&style=for-the-badge)](https://github.com/Sam42a/DUNE/releases/latest)
-[![GitHub Stars](https://img.shields.io/github/stars/Sam42a/DUNE?label=Stars&labelColor=555555&style=for-the-badge)](https://github.com/Sam42a/DUNE/stargazers)
-[![Support Me](https://img.shields.io/badge/Support_Me-Buy_a_Coffee-orange?labelColor=555555&style=for-the-badge)](https://coff.ee/sam42)
-
-<p align="center">
-  <br>
-  <img src="https://i.imgur.com/4Oe1APd.jpeg" alt="DUNE Screenshot" width="100%">
-</p>
+[![Latest Release](https://img.shields.io/github/v/release/Sam42a/DUNE?label=Latest%20Release&labelColor=555555&style=for-the-badge)](https://github.com/Spark-NV/DUNE/releases/latest)
+[![Support Sam42a](https://img.shields.io/badge/Support_Me-Buy_a_Coffee-orange?labelColor=555555&style=for-the-badge)](https://coff.ee/sam42)
 
 ## About
 
-**DUNE** is a modified version of the official [Jellyfin](https://jellyfin.org/) Android TV client with enhanced UI/UX and additional customization options.
+**Lumina** is a modified version of DUNE by Sam42a which is itself a fork of the official [Jellyfin](https://jellyfin.org/) Android TV client with baked in support for premiumize streaming utlizing jellyfin as the library manager. Currently built off DUNE 0.1.1 source(highly doubt i update to new dune source unless something drastically changes)
 
-> **Note**: This is an unofficial fork not affiliated with the Jellyfin project. The official Jellyfin Android TV client can be found at [jellyfin/jellyfin-androidtv](https://github.com/jellyfin/jellyfin-androidtv).
+> **Note**: This is an unofficial fork not affiliated with the Jellyfin project or Sam42a's fork. The official Jellyfin Android TV client can be found at [jellyfin/jellyfin-androidtv](https://github.com/jellyfin/jellyfin-androidtv). Sam42a's client can be found at [jellyfin/jellyfin-androidtv](https://github.com/Sam42a/DUNE)
 
-## Translating
+> **Note**: This fork is not for use by most people this only makes sense if you have a jellyfin server setup to create libraries from stuff like trakt or simkl or other means. I personally have made a few modifications to other plugins for jellyfin which creates extremely small snub files to be used to create jellyfin libraries, which allows jellyfin to handle all metadata fetching and this app handles playback. This has 0 things in common with the other lumina app, the other lumina app i will prbably abandon as managing metadata myself is pretty hard i found, its so much easier to let jellyfin handle it all.
 
-This project uses the same translation system as the original Jellyfin Android TV client. If you'd like to help, please contribute to the [official Jellyfin Weblate instance](https://translate.jellyfin.org/projects/jellyfin-android/jellyfin-androidtv).
 
-## Key Features
+
+### LUMINA added features
+- Baked in torrentio and AIOStreams api handling
+- Removed internal player usage due to missing jellyfin server metadata
+- Added custom intents to send to a [custom justplayer fork](https://github.com/Spark-NV/Player/tree/Jellyfin/RELEASE) to allow for server playback tracking
+- UI slightly slimmed down, options removed to be as simple as possible for the less tech litterate
+- Added a few new features such as a collections button on movie items to view which collections the movie belongs too, a new button to add movies to existing playlists or creating a new playlist.
+- Added a new option for the shelf on the home screen; New movie releases, this will get the latest releases from the server, helpful for those wanting to know newest releases.
+
+## DUNE Key Features
 
 ### Visual & Interface
 **Modernized UI Framework**
@@ -72,16 +70,12 @@ cd DUNE-main
 ./gradlew assembleEnhancedRelease
 ```
 
-### Install on Device
-```bash
-# Install debug version
-./gradlew installStandardDebug
-
-# Install enhanced release
-./gradlew installEnhancedRelease
+### Updating version
+```
+app/src/main/java/org/jellyfin/androidtv/ui/preference/category/about.kt
 ```
 
-**Note:** The enhanced version uses package ID `Dune.enhanced.tv` which allows it to be installed alongside the original Jellyfin app.
+**Note:** This version uses package ID `Dune.lumina.tv` which allows it to be installed alongside the original Jellyfin app and the original DUNE app.
 
 ## Third-Party Libraries
 

@@ -136,12 +136,20 @@ fun FullDetailsFragment.togglePlayed() {
 	val dataRefreshService by inject<DataRefreshService>()
 
 	lifecycleScope.launch {
+		val wasPlayed = mBaseItem.userData?.played ?: false
 		val userData = itemMutationRepository.setPlayed(
 			item = mBaseItem.id,
-			played = !(mBaseItem.userData?.played ?: false)
+			played = !wasPlayed
 		)
 		mBaseItem = mBaseItem.copyWithUserData(userData)
 		mWatchedToggleButton.isActivated = userData.played
+		mWatchedToggleButton.setLabel(if (userData.played) getString(R.string.mark_unwatched) else getString(R.string.mark_watched))
+
+		// Show toast notification
+		val itemName = mBaseItem.name ?: getString(R.string.lbl_bracket_unknown)
+		val statusText = if (userData.played) getString(R.string.lbl_watched) else getString(R.string.lbl_unwatched)
+		val message = "$itemName ${getString(R.string.lbl_has_been_marked_as)} $statusText"
+		Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
 
 		// Adjust resume
 		mResumeButton?.apply {
@@ -248,7 +256,8 @@ fun FullDetailsFragment.resumePlayback() {
 	if (mBaseItem.type != BaseItemKind.SERIES) {
 		val pos = (mBaseItem.userData?.playbackPositionTicks?.ticks
 			?: Duration.ZERO) - resumePreroll.milliseconds
-		play(mBaseItem, pos.inWholeMilliseconds.toInt(), false)
+		// Use stream search logic instead of direct playback
+		queryAndShowStreams(pos.inWholeMilliseconds.toInt())
 		return
 	}
 

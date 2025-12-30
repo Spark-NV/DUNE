@@ -13,6 +13,11 @@ import org.jellyfin.androidtv.preference.constant.ScreensaverSortBy
 import org.jellyfin.androidtv.preference.constant.NextUpBehavior
 import org.jellyfin.androidtv.preference.constant.RatingType
 import org.jellyfin.androidtv.preference.constant.RefreshRateSwitchingBehavior
+import org.jellyfin.androidtv.preference.constant.StreamSortBy
+import org.jellyfin.androidtv.preference.constant.StreamMinSizeMovies
+import org.jellyfin.androidtv.preference.constant.StreamMaxSizeMovies
+import org.jellyfin.androidtv.preference.constant.StreamMinSizeEpisodes
+import org.jellyfin.androidtv.preference.constant.StreamMaxSizeEpisodes
 import org.jellyfin.androidtv.preference.constant.SkipDuration
 import org.jellyfin.androidtv.preference.constant.SubtitleLanguage
 import org.jellyfin.androidtv.preference.UserPreferences.Companion.screensaverInAppEnabled
@@ -57,7 +62,7 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		/**
 		 * Select the app theme
 		 */
-		var appTheme = enumPreference("app_theme", AppTheme.MUTED_PURPLE)
+		var appTheme = enumPreference("app_theme", AppTheme.BASIC)
 
 		/**
 		 * Enable background images while browsing
@@ -209,6 +214,12 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 
 		/* Developer options */
 		/**
+		 * Back button navigation cooldown in milliseconds
+		 * Prevents rapid back presses that can cause focus/navigation issues
+		 */
+		var backButtonCooldownMs = intPreference("back_button_cooldown_ms", 3000)
+
+		/**
 		 * Show additional debug information
 		 */
 		var debuggingEnabled = booleanPreference("pref_enable_debug", false)
@@ -236,7 +247,7 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		/**
 		 * Show resolution badge on movie cards
 		 */
-		var showResolutionBadge = booleanPreference("pref_show_resolution_badge", true)
+		var showResolutionBadge = booleanPreference("pref_show_resolution_badge", false)
 
 		/**
 		 * Show audio codec badge on movie cards
@@ -334,7 +345,7 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		/**
 		 * Whether items shown in the screensaver are required to have an age rating set.
 		 */
-		var screensaverAgeRatingRequired = booleanPreference("screensaver_agerating_required", true)
+		var screensaverAgeRatingRequired = booleanPreference("screensaver_agerating_required", false)
 
 		/**
 		 * Sorting method for screensaver content
@@ -381,7 +392,45 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		 * Disk cache size in MB for images
 		 * Default: 250mb
 		 */
-		var diskCacheSizeMb = intPreference("disk_cache_size_mb", 250)
+		var diskCacheSizeMb = intPreference("disk_cache_size_mb", 5120)
+
+		/* Stream Scrapers */
+		/**
+		 * Premiumize API key for Torrentio scraper
+		 */
+		var premiumizeApiKey = stringPreference("premiumize_api_key", "")
+
+		/**
+		 * Enable Torrentio scraper
+		 */
+		var torrentioEnabled = booleanPreference("torrentio_enabled", false)
+
+		/**
+		 * Enable AIOStreams scraper
+		 */
+		var aiostreamsEnabled = booleanPreference("aiostreams_enabled", false)
+
+		/**
+		 * AIOStreams config string (required for AIOStreams API)
+		 */
+		var aiostreamsConfig = stringPreference("aiostreams_config", "")
+
+		/**
+		 * Stream sorting preference
+		 */
+		var streamSortBy = enumPreference("stream_sort_by", StreamSortBy.SIZE_DESCENDING)
+
+		/**
+		 * Stream size filters for movies
+		 */
+		var streamMinSizeMovies = enumPreference("stream_min_size_movies", StreamMinSizeMovies.DISABLED)
+		var streamMaxSizeMovies = enumPreference("stream_max_size_movies", StreamMaxSizeMovies.DISABLED)
+
+		/**
+		 * Stream size filters for episodes
+		 */
+		var streamMinSizeEpisodes = enumPreference("stream_min_size_episodes", StreamMinSizeEpisodes.DISABLED)
+		var streamMaxSizeEpisodes = enumPreference("stream_max_size_episodes", StreamMaxSizeEpisodes.DISABLED)
 
 	}
 

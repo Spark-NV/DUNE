@@ -120,6 +120,8 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
     private DetailButton mRecSeriesButton;
     private DetailButton mSeriesSettingsButton;
     DetailButton mWatchedToggleButton;
+    DetailButton mCollectionsButton;
+    DetailButton mPlaylistsButton;
 
     private DisplayMetrics mMetrics;
 
@@ -144,6 +146,8 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
     BaseItemDto mBaseItem;
 
     private ArrayList<MediaSourceInfo> versions;
+    private java.util.Map<String, String> foundCollections;
+    private java.util.Map<String, String> foundPlaylists;
     private final Lazy<org.jellyfin.sdk.api.client.ApiClient> api = inject(org.jellyfin.sdk.api.client.ApiClient.class);
     private final Lazy<UserPreferences> userPreferences = inject(UserPreferences.class);
     private final Lazy<DataRefreshService> dataRefreshService = inject(DataRefreshService.class);
@@ -260,17 +264,7 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
                             if (item == null) return null;
 
                             mBaseItem = item;
-                            if (mResumeButton != null) {
-                                boolean resumeVisible = (mBaseItem.getType() == BaseItemKind.SERIES && !mBaseItem.getUserData().getPlayed()) || JavaCompat.getCanResume(mBaseItem);
-                                mResumeButton.setVisibility(resumeVisible ? View.VISIBLE : View.GONE);
-                                if (JavaCompat.getCanResume(mBaseItem)) {
-                                    mResumeButton.setLabel(getString(R.string.lbl_resume_from, TimeUtils.formatMillis((mBaseItem.getUserData().getPlaybackPositionTicks() / 10000) - getResumePreroll())));
-                                }
-                                if (resumeVisible) {
-                                } else if (playButton != null && ViewKt.isVisible(playButton)) {
-                                }
-                                showMoreButtonIfNeeded();
-                            }
+                            // Removed: Resume button visibility logic
                             updateWatched();
                             mLastUpdated = Instant.now();
                             return null;
@@ -697,19 +691,20 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
 
                 break;
             case SERIES:
-                ItemRowAdapter nextUpAdapter = new ItemRowAdapter(requireContext(), BrowsingUtils.createSeriesGetNextUpRequest(mBaseItem.getId()), false, new CardPresenter(true, 130), adapter);
-                addItemRow(adapter, nextUpAdapter, 0, getString(R.string.lbl_next_up));
+                // Removed: Next Up section
+                // ItemRowAdapter nextUpAdapter = new ItemRowAdapter(requireContext(), BrowsingUtils.createSeriesGetNextUpRequest(mBaseItem.getId()), false, new CardPresenter(true, 130), adapter);
+                // addItemRow(adapter, nextUpAdapter, 0, getString(R.string.lbl_next_up));
 
                 ItemRowAdapter seasonsAdapter = new ItemRowAdapter(requireContext(), BrowsingUtils.createSeasonsRequest(mBaseItem.getId()), new CardPresenter(), adapter);
-                addItemRow(adapter, seasonsAdapter, 1, getString(R.string.lbl_seasons));
+                addItemRow(adapter, seasonsAdapter, 0, getString(R.string.lbl_seasons));
+
+                ItemRowAdapter upcomingAdapter = new ItemRowAdapter(requireContext(), BrowsingUtils.createUpcomingEpisodesRequest(mBaseItem.getId()), new CardPresenter(), adapter);
+                addItemRow(adapter, upcomingAdapter, 1, getString(R.string.lbl_upcoming));
 
                 //Specials
                 if (mBaseItem.getSpecialFeatureCount() != null && mBaseItem.getSpecialFeatureCount() > 0) {
-                    addItemRow(adapter, new ItemRowAdapter(requireContext(), new GetSpecialsRequest(mBaseItem.getId()), new CardPresenter(), adapter), 3, getString(R.string.lbl_specials));
+                    addItemRow(adapter, new ItemRowAdapter(requireContext(), new GetSpecialsRequest(mBaseItem.getId()), new CardPresenter(), adapter), 2, getString(R.string.lbl_specials));
                 }
-
-                ItemRowAdapter upcomingAdapter = new ItemRowAdapter(requireContext(), BrowsingUtils.createUpcomingEpisodesRequest(mBaseItem.getId()), new CardPresenter(), adapter);
-                addItemRow(adapter, upcomingAdapter, 2, getString(R.string.lbl_upcoming));
 
                 if (mBaseItem.getPeople() != null && !mBaseItem.getPeople().isEmpty()) {
                     ItemRowAdapter seriesCastAdapter = new ItemRowAdapter(mBaseItem.getPeople(), requireContext(), new CardPresenter(true, 130), adapter);
@@ -865,6 +860,10 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
     DetailButton playButton = null;
     DetailButton trailerButton = null;
 
+    // Play button state for loading animation
+    private int playButtonOriginalIcon = R.drawable.ic_play;
+    private String playButtonOriginalText = "";
+
     private void addButtons(int buttonSize) {
         BaseItemDto baseItem = mBaseItem;
         String buttonLabel;
@@ -889,65 +888,48 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
             mResumeButton.setProgress(progressPercentage / 100f);
         }
 
-        if (BaseItemExtensionsKt.canPlay(baseItem)) {
-            mDetailsOverviewRow.addAction(mResumeButton);
-            boolean resumeButtonVisible = (baseItem.getType() == BaseItemKind.SERIES && !mBaseItem.getUserData().getPlayed()) || (JavaCompat.getCanResume(mBaseItem));
-            mResumeButton.setVisibility(resumeButtonVisible ? View.VISIBLE : View.GONE);
+        if (BaseItemExtensionsKt.canPlay(baseItem) && !Utils.getSafeValue(mBaseItem.isFolder(), false)) {
+            // Removed: mDetailsOverviewRow.addAction(mResumeButton);
+            // Removed: boolean resumeButtonVisible = (baseItem.getType() == BaseItemKind.SERIES && !mBaseItem.getUserData().getPlayed()) || (JavaCompat.getCanResume(mBaseItem));
+            // Removed: mResumeButton.setVisibility(resumeButtonVisible ? View.VISIBLE : View.GONE);
 
-            playButton = DetailButton.create(requireContext(), R.drawable.ic_play, getString(BaseItemExtensionsKt.isLiveTv(mBaseItem) ? R.string.lbl_tune_to_channel : Utils.getSafeValue(mBaseItem.isFolder(), false) ? R.string.lbl_play_all : R.string.lbl_play), new View.OnClickListener() {
+            String playButtonText;
+            if (BaseItemExtensionsKt.isLiveTv(mBaseItem)) {
+                playButtonText = getString(R.string.lbl_tune_to_channel);
+            } else if (mBaseItem.getType() == BaseItemKind.MOVIE) {
+                playButtonText = getString(R.string.lbl_play) + " " + (mBaseItem.getName() != null ? mBaseItem.getName() : getString(R.string.lbl_bracket_unknown));
+            } else if (mBaseItem.getType() == BaseItemKind.EPISODE) {
+                String seriesName = mBaseItem.getSeriesName() != null ? mBaseItem.getSeriesName() : getString(R.string.lbl_bracket_unknown);
+                String seasonNumber = mBaseItem.getParentIndexNumber() != null ? mBaseItem.getParentIndexNumber().toString() : "?";
+                String episodeNumber = mBaseItem.getIndexNumber() != null ? mBaseItem.getIndexNumber().toString() : "?";
+                playButtonText = getString(R.string.lbl_play) + " " + seriesName + " season " + seasonNumber + " episode " + episodeNumber;
+            } else {
+                playButtonText = getString(R.string.lbl_play);
+            }
+            playButtonOriginalIcon = R.drawable.ic_play;
+            playButtonOriginalText = playButtonText;
+
+            playButton = DetailButton.create(requireContext(), playButtonOriginalIcon, playButtonOriginalText, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    play(mBaseItem, 0, false);
+                    // Check if any scraper is enabled
+                    boolean torrentioEnabled = userPreferences.getValue().get(UserPreferences.Companion.getTorrentioEnabled());
+                    boolean aiostreamsEnabled = userPreferences.getValue().get(UserPreferences.Companion.getAiostreamsEnabled());
+
+                    if (torrentioEnabled || aiostreamsEnabled) {
+                        // Show loading state and query scrapers
+                        setPlayButtonLoadingState();
+                        queryAndShowStreams();
+                    } else {
+                        // Use original play behavior
+                        play(mBaseItem, 0, false);
+                    }
                 }
             });
 
             mDetailsOverviewRow.addAction(playButton);
 
-            // Add External Player button
-            if (BaseItemExtensionsKt.canPlay(mBaseItem) && mBaseItem.getMediaSources() != null && !mBaseItem.getMediaSources().isEmpty()) {
-                DetailButton externalPlayerButton = DetailButton.create(requireContext(),
-                        R.drawable.ic_playback,
-                    getString(R.string.lbl_play_external), new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            // Create a list with just the current item to pass to the player
-                            List<BaseItemDto> items = new ArrayList<>();
-                            items.add(mBaseItem);
-                            // Set external player preference
-                            Timber.d("Preparing to play item in external player");
-                            UserPreferences prefs = userPreferences.getValue();
-                            boolean originalPref = prefs.get(UserPreferences.Companion.getUseExternalPlayer());
-                            prefs.set(UserPreferences.Companion.getUseExternalPlayer(), true);
-                            try {
-                                // Check if there are any items to play
-                                if (items == null || items.isEmpty()) {
-                                    Timber.e("No items to play in external player");
-                                    Utils.showToast(requireContext(), getString(R.string.msg_no_playable_items));
-                                    return;
-                                }
-                                // Log the item being played
-                                BaseItemDto item = items.get(0);
-                                Timber.d("Attempting to play item in external player: %s (ID: %s, Type: %s)",
-                                    item.getName(), item.getId(), item.getType());
-                                play(items, 0, false);
-                                Timber.d("Successfully launched external player");
-                            } catch (Exception e) {
-                                Timber.e(e, "Error launching external player");
-                                Utils.showToast(requireContext(), getString(R.string.msg_external_player_error));
-                            } finally {
-                                // Restore original preference
-                                prefs.set(UserPreferences.Companion.getUseExternalPlayer(), originalPref);
-                                Timber.d("Restored external player preference to: %b", originalPref);
-                            }
-                        }
-                    });
-                mDetailsOverviewRow.addAction(externalPlayerButton);
-            }
-
-
-            if (resumeButtonVisible) {
-            } else {
-            }
+            // Removed: Resume button visibility check (no longer needed)
 
             boolean isMusic = baseItem.getType() == BaseItemKind.MUSIC_ALBUM
                     || baseItem.getType() == BaseItemKind.MUSIC_ARTIST
@@ -964,15 +946,16 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
                 mDetailsOverviewRow.addAction(queueButton);
             }
 
-            if (Utils.getSafeValue(mBaseItem.isFolder(), false) || baseItem.getType() == BaseItemKind.MUSIC_ARTIST) {
-                shuffleButton = DetailButton.create(requireContext(), R.drawable.ic_shuffle, getString(R.string.lbl_shuffle_all), new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        play(mBaseItem, 0, true);
-                    }
-                });
-                mDetailsOverviewRow.addAction(shuffleButton);
-            }
+            // Removed: Shuffle all button
+            // if (Utils.getSafeValue(mBaseItem.isFolder(), false) || baseItem.getType() == BaseItemKind.MUSIC_ARTIST) {
+            //     shuffleButton = DetailButton.create(requireContext(), R.drawable.ic_shuffle, getString(R.string.lbl_shuffle_all), new View.OnClickListener() {
+            //         @Override
+            //         public void onClick(View v) {
+            //             play(mBaseItem, 0, true);
+            //         }
+            //     });
+            //     mDetailsOverviewRow.addAction(shuffleButton);
+            // }
 
             if (baseItem.getType() == BaseItemKind.MUSIC_ARTIST) {
                 DetailButton imix = DetailButton.create(requireContext(), R.drawable.ic_mix, getString(R.string.lbl_instant_mix), new View.OnClickListener() {
@@ -1105,46 +1088,50 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
 
         org.jellyfin.sdk.model.api.UserItemDataDto userData = mBaseItem.getUserData();
         if (userData != null && mProgramInfo == null) {
-            if (mBaseItem.getType() != BaseItemKind.MUSIC_ARTIST && mBaseItem.getType() != BaseItemKind.PERSON) {
-                mWatchedToggleButton = DetailButton.create(requireContext(), R.drawable.ic_watch, getString(R.string.lbl_watched), markWatchedListener);
+            if (mBaseItem.getType() != BaseItemKind.MUSIC_ARTIST && mBaseItem.getType() != BaseItemKind.PERSON && mBaseItem.getType() != BaseItemKind.SERIES) {
+                mWatchedToggleButton = DetailButton.create(requireContext(), R.drawable.ic_watch, userData.getPlayed() ? getString(R.string.mark_unwatched) : getString(R.string.mark_watched), markWatchedListener);
                 mWatchedToggleButton.setActivated(userData.getPlayed());
                 mDetailsOverviewRow.addAction(mWatchedToggleButton);
-            }
+                mCollectionsButton = DetailButton.create(requireContext(), R.drawable.ic_folder, getString(R.string.lbl_collections), new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showCollectionsDialog();
+                    }
+                });
+                mDetailsOverviewRow.addAction(mCollectionsButton);
 
-            //Favorite
-            favButton = DetailButton.create(requireContext(), R.drawable.ic_heart, getString(R.string.lbl_favorite), new View.OnClickListener() {
-                @Override
-                public void onClick(final View v) {
-                    FullDetailsFragmentHelperKt.toggleFavorite(FullDetailsFragment.this);
-                }
-            });
-            favButton.setActivated(userData.isFavorite());
-            mDetailsOverviewRow.addAction(favButton);
+                mPlaylistsButton = DetailButton.create(requireContext(), R.drawable.ic_add, getString(R.string.lbl_playlists), new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showPlaylistActionDialog();
+                    }
+                });
+                mDetailsOverviewRow.addAction(mPlaylistsButton);
+            }
         }
 
+        mPrevButton = DetailButton.create(requireContext(), R.drawable.arrow_back, getString(R.string.lbl_previous_episode), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mPrevItemId != null) {
+                    navigationRepository.getValue().navigate(Destinations.INSTANCE.itemDetails(mPrevItemId));
+                }
+            }
+        });
+        mDetailsOverviewRow.addAction(mPrevButton);
+        mPrevButton.setVisibility(View.GONE);
+
+        goToSeriesButton = DetailButton.create(requireContext(), R.drawable.go_back, getString(R.string.lbl_goto_series), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                gotoSeries();
+            }
+        });
+        mDetailsOverviewRow.addAction(goToSeriesButton);
+        goToSeriesButton.setVisibility(View.GONE);
+
         if (mBaseItem.getType() == BaseItemKind.EPISODE && mBaseItem.getSeriesId() != null) {
-            //add the prev button first so it will be there in proper position - we'll show it later if needed
-            mPrevButton = DetailButton.create(requireContext(), R.drawable.arrow_back, getString(R.string.lbl_previous_episode), new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (mPrevItemId != null) {
-                        navigationRepository.getValue().navigate(Destinations.INSTANCE.itemDetails(mPrevItemId));
-                    }
-                }
-            });
-
-            mDetailsOverviewRow.addAction(mPrevButton);
-
-            //now go get our prev episode id
             FullDetailsFragmentHelperKt.populatePreviousButton(FullDetailsFragment.this);
-
-            goToSeriesButton = DetailButton.create(requireContext(), R.drawable.go_back, getString(R.string.lbl_goto_series), new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    gotoSeries();
-                }
-            });
-            mDetailsOverviewRow.addAction(goToSeriesButton);
         }
 
         if (userPreferences.getValue().get(UserPreferences.Companion.getMediaManagementEnabled())) {
@@ -1205,18 +1192,6 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
 
         }
 
-        if (BaseItemExtensionsKt.canPlay(mBaseItem) && mBaseItem.getId() != null) {
-            DetailButton pluginButton = DetailButton.create(requireContext(),
-                    R.drawable.ic_select_subtitle,
-                getString(R.string.pref_subtitles), new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        interactWithServerPlugin();
-                    }
-                });
-            mDetailsOverviewRow.addAction(pluginButton);
-        }
-
         //Now, create a more button to show if needed
         moreButton = DetailButton.create(requireContext(), R.drawable.ic_more, getString(R.string.lbl_other_options), new View.OnClickListener() {
             @Override
@@ -1273,16 +1248,19 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
         if (trailerButton != null) actionsList.add(trailerButton);
         if (shuffleButton != null) actionsList.add(shuffleButton);
         if (favButton != null) actionsList.add(favButton);
-        if (goToSeriesButton != null) actionsList.add(goToSeriesButton);
+        // Removed: goToSeriesButton and mPrevButton references (buttons no longer created)
+        // if (goToSeriesButton != null) actionsList.add(goToSeriesButton);
         if (mVersionsButton != null) actionsList.add(mVersionsButton);
         if (mRecordButton != null) actionsList.add(mRecordButton);
         if (mRecSeriesButton != null) actionsList.add(mRecSeriesButton);
         if (mSeriesSettingsButton != null) actionsList.add(mSeriesSettingsButton);
         if (mWatchedToggleButton != null) actionsList.add(mWatchedToggleButton);
-        if (mPrevButton != null) actionsList.add(mPrevButton);
+        if (mCollectionsButton != null) actionsList.add(mCollectionsButton);
+        if (mPlaylistsButton != null) actionsList.add(mPlaylistsButton);
+        // Removed: mPrevButton reference (button no longer created)
+        // if (mPrevButton != null) actionsList.add(mPrevButton);
         if (deleteButton != null) actionsList.add(deleteButton);
 
-        // reverse the list so the less important actions are hidden first
         Collections.reverse(actionsList);
 
         collapsedOptions = 0;
@@ -1317,11 +1295,9 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
                 mRecordPopup.setContent(requireContext(), program, response, FullDetailsFragment.this, recordSeries);
                 mRecordPopup.show();
             } else {
-                //just record with defaults
                 FullDetailsFragmentHelperKt.createLiveTvSeriesTimer(this, response, () -> {
                     Utils.showToast(requireContext(), R.string.msg_set_to_record);
 
-                    // we have to re-retrieve the program to get the timer id
                     FullDetailsFragmentHelperKt.getLiveTvProgram(this, mProgramInfo.getId(), programInfo -> {
                         setRecTimer(programInfo.getTimerId());
                         return null;
@@ -1428,5 +1404,639 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
             }
             return null;
         });
+    }
+
+    private void queryAndShowStreams() {
+        queryAndShowStreams(0);
+    }
+
+    public void queryAndShowStreams(int resumePosition) {
+        if (mBaseItem == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        Utils.showToast(requireContext(), "Searching for streams...");
+
+        androidx.lifecycle.LifecycleOwner lifecycleOwner = getViewLifecycleOwner();
+        kotlinx.coroutines.CoroutineScope scope = androidx.lifecycle.LifecycleOwnerKt.getLifecycleScope(lifecycleOwner);
+        org.jellyfin.androidtv.ui.itemdetail.StreamScraperHelper helper = new org.jellyfin.androidtv.ui.itemdetail.StreamScraperHelper(
+            userPreferences.getValue(),
+            scope,
+            api.getValue()
+        );
+
+        helper.queryStreams(mBaseItem, (java.util.List<org.jellyfin.androidtv.data.scraper.StreamData> streams) -> {
+            if (!isAdded()) {
+                return kotlin.Unit.INSTANCE;
+            }
+
+            if (streams.isEmpty()) {
+                Utils.showToast(requireContext(), "No streams found");
+                restorePlayButtonState();
+                return kotlin.Unit.INSTANCE;
+            }
+
+            String mediaTitle = mBaseItem.getName() != null ? mBaseItem.getName() : "Unknown";
+            String mediaSubtitle = "";
+            if (mBaseItem.getType() == BaseItemKind.EPISODE) {
+                if (mBaseItem.getSeriesName() != null && !mBaseItem.getSeriesName().isEmpty()) {
+                    mediaSubtitle = mBaseItem.getSeriesName();
+                }
+                if (mBaseItem.getParentIndexNumber() != null && mBaseItem.getIndexNumber() != null) {
+                    if (!mediaSubtitle.isEmpty()) {
+                        mediaSubtitle += " - ";
+                    }
+                    mediaSubtitle += String.format("S%02dE%02d", mBaseItem.getParentIndexNumber(), mBaseItem.getIndexNumber());
+                }
+                if (mBaseItem.getName() != null && !mBaseItem.getName().isEmpty()) {
+                    if (!mediaSubtitle.isEmpty()) {
+                        mediaSubtitle += " - ";
+                    }
+                    mediaSubtitle += mBaseItem.getName();
+                }
+            } else {
+                mediaSubtitle = mediaTitle;
+            }
+
+            Timber.d("[FullDetailsFragment] Navigating to StreamSelectionFragment for item ${mBaseItem.getId()}, resumePosition: $resumePosition");
+
+            navigationRepository.getValue().navigate(
+                org.jellyfin.androidtv.ui.navigation.Destinations.INSTANCE.streamSelection(
+                    mediaTitle,
+                    mediaSubtitle,
+                    mBaseItem.getId().toString(),
+                    resumePosition
+                )
+            );
+            restorePlayButtonState();
+            return kotlin.Unit.INSTANCE;
+        });
+    }
+
+    private void setPlayButtonLoadingState() {
+        if (playButton != null) {
+            playButton.setIcon(R.drawable.ic_refresh);
+            playButton.setLabel(getString(R.string.loading));
+        }
+    }
+
+    private void restorePlayButtonState() {
+        if (playButton != null) {
+            playButton.setIcon(playButtonOriginalIcon);
+            playButton.setLabel(playButtonOriginalText);
+        }
+    }
+
+    private void showCollectionsDialog() {
+        if (mBaseItem == null || mBaseItem.getId() == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        org.jellyfin.sdk.model.api.UserDto currentUser = KoinJavaComponent.<org.jellyfin.androidtv.auth.repository.UserRepository>get(org.jellyfin.androidtv.auth.repository.UserRepository.class).getCurrentUser().getValue();
+        if (currentUser == null || currentUser.getId() == null) {
+            Utils.showToast(requireContext(), "User not available");
+            return;
+        }
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(requireContext());
+        progressDialog.setMessage("Fetching latest collections list...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new android.os.AsyncTask<Void, Void, java.util.List<String>>() {
+            @Override
+            protected java.util.List<String> doInBackground(Void... voids) {
+                try {
+                    org.jellyfin.sdk.api.client.ApiClient apiClient = api.getValue();
+                    String baseUrl = apiClient.getBaseUrl();
+                    String accessToken = apiClient.getAccessToken();
+                    String userId = currentUser.getId().toString();
+                    String movieId = mBaseItem.getId().toString();
+
+                    String movieIdNoDashes = movieId.replace("-", "");
+
+                    Timber.d("Looking for collections matching movie ID: %s", movieId);
+
+                    String collectionsUrl = baseUrl + "/Users/" + userId + "/Items?Recursive=true&IncludeItemTypes=BoxSet&Fields=Id,Name";
+
+                    org.json.JSONObject collectionsJson = makeApiRequest(collectionsUrl, accessToken);
+                    if (collectionsJson == null) {
+                        return null;
+                    }
+
+                    org.json.JSONArray collectionsArray = collectionsJson.optJSONArray("Items");
+                    if (collectionsArray == null || collectionsArray.length() == 0) {
+                        return new java.util.ArrayList<>();
+                    }
+
+                    java.util.List<String> foundCollectionNames = new java.util.concurrent.CopyOnWriteArrayList<>();
+                    foundCollections = new java.util.concurrent.ConcurrentHashMap<>();
+                    java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(5);
+                    java.util.List<java.util.concurrent.Future<CollectionResult>> futures = new java.util.ArrayList<>();
+
+                    for (int i = 0; i < collectionsArray.length(); i++) {
+                        org.json.JSONObject collection = collectionsArray.getJSONObject(i);
+                        String collectionId = collection.getString("Id");
+                        String collectionName = collection.getString("Name");
+
+                        futures.add(executor.submit(new java.util.concurrent.Callable<CollectionResult>() {
+                            @Override
+                            public CollectionResult call() {
+                                try {
+                                    String itemsUrl = baseUrl + "/Users/" + userId + "/Items?ParentId=" + collectionId + "&Fields=Id";
+
+                                    org.json.JSONObject itemsJson = makeApiRequest(itemsUrl, accessToken);
+
+                                    if (itemsJson != null) {
+                                        org.json.JSONArray itemsArray = itemsJson.optJSONArray("Items");
+                                        if (itemsArray != null) {
+                                            for (int j = 0; j < itemsArray.length(); j++) {
+                                                org.json.JSONObject item = itemsArray.getJSONObject(j);
+                                                String itemId = item.getString("Id");
+
+                                                boolean matchExact = itemId.equals(movieId);
+                                                boolean matchNoDashes = itemId.replace("-", "").equals(movieIdNoDashes);
+                                                boolean matchLowerCase = itemId.toLowerCase().equals(movieId.toLowerCase());
+
+                                                if (matchExact || matchNoDashes || matchLowerCase) {
+                                                    return new CollectionResult(true, collectionName, collectionId);
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                }
+                                return new CollectionResult(false, null, null);
+                            }
+                        }));
+                    }
+                    for (java.util.concurrent.Future<CollectionResult> future : futures) {
+                        try {
+                            CollectionResult result = future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                            if (result.found && result.name != null && result.id != null) {
+                                foundCollectionNames.add(result.name);
+                                foundCollections.put(result.name, result.id);
+                            }
+                        } catch (java.util.concurrent.TimeoutException e) {
+                            future.cancel(true);
+                        } catch (Exception e) {
+                        }
+                    }
+
+                    executor.shutdown();
+                    try {
+                        executor.awaitTermination(45, java.util.concurrent.TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                    }
+
+                    if (foundCollectionNames.isEmpty()) {
+                        Timber.d("Did not find any collections containing movie: %s", mBaseItem.getName());
+                    } else {
+                        java.util.List<String> collectionDetails = new java.util.ArrayList<>();
+                        for (String name : foundCollectionNames) {
+                            String id = foundCollections.get(name);
+                            collectionDetails.add(name + " :: " + id);
+                        }
+                        Timber.d("Found collections: %s", collectionDetails.toString());
+                    }
+
+                    return new java.util.ArrayList<>(foundCollectionNames);
+
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(java.util.List<String> collectionNames) {
+                progressDialog.dismiss();
+
+                if (collectionNames == null) {
+                    Utils.showToast(requireContext(), "Failed to load collection data");
+                    return;
+                }
+
+                if (collectionNames.isEmpty()) {
+                    new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                            .setTitle("Collections")
+                            .setMessage("This item doesn't belong to any collections.")
+                            .setPositiveButton(R.string.lbl_ok, null)
+                            .show();
+                    return;
+                }
+
+                showCollectionsListDialog(collectionNames, foundCollections);
+            }
+        }.execute();
+    }
+
+private static class CollectionResult {
+    boolean found;
+    String name;
+    String id;
+
+    CollectionResult(boolean found, String name, String id) {
+        this.found = found;
+        this.name = name;
+        this.id = id;
+    }
+}
+
+    private org.json.JSONObject makeApiRequest(String url, String accessToken) {
+        try {
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("X-Emby-Token", accessToken);
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
+
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode == 200) {
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(connection.getInputStream())
+                );
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                connection.disconnect();
+
+                return new org.json.JSONObject(response.toString());
+            } else {
+                Timber.w("API request failed with code %d for: %s", responseCode, url);
+                connection.disconnect();
+                return null;
+            }
+        } catch (Exception e) {
+            Timber.e(e, "Error making API request to: %s", url);
+            return null;
+        }
+    }
+
+    private void showCollectionsListDialog(List<String> collectionNames, java.util.Map<String, String> foundCollections) {
+        if (collectionNames.isEmpty()) {
+            new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                    .setTitle("Collections")
+                    .setMessage("This item doesn't belong to any collections.")
+                    .setPositiveButton(R.string.lbl_ok, null)
+                    .show();
+            return;
+        }
+
+        Collections.sort(collectionNames);
+
+        final String[] collectionNamesArray = collectionNames.toArray(new String[0]);
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme);
+        builder.setTitle("Select Collection");
+
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<String>(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                collectionNamesArray
+        );
+
+        builder.setAdapter(adapter, new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                String selectedCollectionName = collectionNamesArray[which];
+                String selectedCollectionId = foundCollections.get(selectedCollectionName);
+
+                if (selectedCollectionId != null) {
+                    navigateToCollection(selectedCollectionName, selectedCollectionId);
+                }
+            }
+        });
+
+        builder.setNegativeButton(R.string.lbl_cancel, null);
+        builder.show();
+    }
+
+    private void navigateToCollection(String collectionName, String collectionId) {
+        try {
+            String formattedCollectionId = collectionId;
+            if (collectionId != null && collectionId.length() == 32 && !collectionId.contains("-")) {
+                formattedCollectionId = collectionId.substring(0, 8) + "-" +
+                                       collectionId.substring(8, 12) + "-" +
+                                       collectionId.substring(12, 16) + "-" +
+                                       collectionId.substring(16, 20) + "-" +
+                                       collectionId.substring(20, 32);
+                Timber.d("Converted collection ID from %s to %s", collectionId, formattedCollectionId);
+            }
+
+            FullDetailsFragmentHelperKt.getItem(this, java.util.UUID.fromString(formattedCollectionId), collectionItem -> {
+                if (collectionItem != null) {
+                    navigationRepository.getValue().navigate(Destinations.INSTANCE.collectionBrowser(collectionItem));
+                } else {
+                    Timber.e("Failed to fetch collection item: %s", collectionName);
+                    Utils.showToast(requireContext(), "Failed to open collection");
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            Timber.e(e, "Error navigating to collection: %s", collectionName);
+            Utils.showToast(requireContext(), "Failed to open collection");
+        }
+    }
+
+    private void showPlaylistActionDialog() {
+        if (mBaseItem == null || mBaseItem.getId() == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        final String[] actions = {"Add To Existing Playlist", "Create And Add To New Playlist"};
+
+        new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                .setTitle("Playlist Actions")
+                .setItems(actions, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case 0:
+                                showExistingPlaylistsDialog();
+                                break;
+                            case 1:
+                                showCreatePlaylistDialog();
+                                break;
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.lbl_cancel, null)
+                .show();
+    }
+
+    private void showExistingPlaylistsDialog() {
+        if (mBaseItem == null || mBaseItem.getId() == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        org.jellyfin.sdk.model.api.UserDto currentUser = KoinJavaComponent.<org.jellyfin.androidtv.auth.repository.UserRepository>get(org.jellyfin.androidtv.auth.repository.UserRepository.class).getCurrentUser().getValue();
+        if (currentUser == null || currentUser.getId() == null) {
+            Utils.showToast(requireContext(), "User not available");
+            return;
+        }
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(requireContext());
+        progressDialog.setMessage("Fetching playlists...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new android.os.AsyncTask<Void, Void, java.util.List<String>>() {
+            @Override
+            protected java.util.List<String> doInBackground(Void... voids) {
+                try {
+                    org.jellyfin.sdk.api.client.ApiClient apiClient = api.getValue();
+                    String baseUrl = apiClient.getBaseUrl();
+                    String accessToken = apiClient.getAccessToken();
+                    String userId = currentUser.getId().toString();
+
+                    String playlistsUrl = baseUrl + "/Users/" + userId + "/Items?Recursive=true&IncludeItemTypes=Playlist&Fields=Id,Name";
+
+                    org.json.JSONObject playlistsJson = makeApiRequest(playlistsUrl, accessToken);
+                    if (playlistsJson == null) {
+                        return null;
+                    }
+
+                    org.json.JSONArray playlistsArray = playlistsJson.optJSONArray("Items");
+                    if (playlistsArray == null || playlistsArray.length() == 0) {
+                        return new java.util.ArrayList<>();
+                    }
+
+                    java.util.List<String> playlistNames = new java.util.ArrayList<>();
+                    java.util.Map<String, String> playlistMap = new java.util.HashMap<>();
+
+                    for (int i = 0; i < playlistsArray.length(); i++) {
+                        org.json.JSONObject playlist = playlistsArray.getJSONObject(i);
+                        String playlistId = playlist.getString("Id");
+                        String playlistName = playlist.getString("Name");
+                        playlistNames.add(playlistName);
+                        playlistMap.put(playlistName, playlistId);
+                    }
+
+                    foundPlaylists = playlistMap;
+                    return playlistNames;
+
+                } catch (Exception e) {
+                    Timber.e(e, "Error fetching playlists");
+                    return null;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(java.util.List<String> playlistNames) {
+                progressDialog.dismiss();
+
+                if (playlistNames == null) {
+                    Utils.showToast(requireContext(), "Failed to load playlists");
+                    return;
+                }
+
+                if (playlistNames.isEmpty()) {
+                    new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                            .setTitle("Playlists")
+                            .setMessage("No playlists found. Create a new playlist first.")
+                            .setPositiveButton(R.string.lbl_ok, null)
+                            .show();
+                    return;
+                }
+
+                showPlaylistSelectionDialog(playlistNames);
+            }
+        }.execute();
+    }
+
+    private void showPlaylistSelectionDialog(java.util.List<String> playlistNames) {
+        if (playlistNames == null || playlistNames.isEmpty()) {
+            new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                    .setTitle("Playlists")
+                    .setMessage("No playlists found.")
+                    .setPositiveButton(R.string.lbl_ok, null)
+                    .show();
+            return;
+        }
+
+        final String[] playlistNamesArray = playlistNames.toArray(new String[0]);
+
+        new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                .setTitle("Select Playlist")
+                .setItems(playlistNamesArray, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String selectedPlaylistName = playlistNamesArray[which];
+                        String selectedPlaylistId = foundPlaylists.get(selectedPlaylistName);
+                        if (selectedPlaylistId != null) {
+                            addItemToPlaylist(selectedPlaylistId);
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.lbl_cancel, null)
+                .show();
+    }
+
+    private void addItemToPlaylist(String playlistId) {
+        if (playlistId == null || playlistId.trim().isEmpty() || mBaseItem == null || mBaseItem.getId() == null) {
+            Utils.showToast(requireContext(), "Invalid playlist or item");
+            return;
+        }
+
+        org.jellyfin.sdk.model.api.UserDto currentUser = KoinJavaComponent.<org.jellyfin.androidtv.auth.repository.UserRepository>get(org.jellyfin.androidtv.auth.repository.UserRepository.class).getCurrentUser().getValue();
+        if (currentUser == null || currentUser.getId() == null) {
+            Utils.showToast(requireContext(), "User not available");
+            return;
+        }
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(requireContext());
+        progressDialog.setMessage("Adding item to playlist...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new android.os.AsyncTask<Void, Void, Boolean>() {
+            @Override
+            protected Boolean doInBackground(Void... voids) {
+                try {
+                    org.jellyfin.sdk.api.client.ApiClient apiClient = api.getValue();
+                    String baseUrl = apiClient.getBaseUrl();
+                    String accessToken = apiClient.getAccessToken();
+                    String userId = currentUser.getId().toString();
+                    String itemId = mBaseItem.getId().toString();
+
+                    String addToPlaylistUrl = baseUrl + "/Playlists/" + playlistId + "/Items?userId=" + userId + "&ids=" + itemId;
+
+                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(addToPlaylistUrl).openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("X-Emby-Token", accessToken);
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    connection.setConnectTimeout(30000);
+                    connection.setReadTimeout(30000);
+
+                    int responseCode = connection.getResponseCode();
+                    connection.disconnect();
+
+                    return responseCode == 204;
+
+                } catch (Exception e) {
+                    Timber.e(e, "Error adding item to playlist");
+                    return false;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Boolean success) {
+                progressDialog.dismiss();
+
+                if (success) {
+                    Utils.showToast(requireContext(), "Item added to playlist successfully");
+                } else {
+                    Utils.showToast(requireContext(), "Failed to add item to playlist");
+                }
+            }
+        }.execute();
+    }
+
+    private void showCreatePlaylistDialog() {
+        if (mBaseItem == null || mBaseItem.getId() == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        android.widget.EditText input = new android.widget.EditText(requireContext());
+        input.setHint("Enter playlist name");
+        input.setInputType(android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+
+        new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                .setTitle("Create New Playlist")
+                .setView(input)
+                .setPositiveButton("Create", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String playlistName = input.getText().toString().trim();
+                        if (!playlistName.isEmpty()) {
+                            createPlaylistWithItem(playlistName);
+                        } else {
+                            Utils.showToast(requireContext(), "Playlist name cannot be empty");
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.lbl_cancel, null)
+                .show();
+    }
+
+    private void createPlaylistWithItem(String playlistName) {
+        if (mBaseItem == null || mBaseItem.getId() == null || playlistName == null || playlistName.trim().isEmpty()) {
+            Utils.showToast(requireContext(), "Invalid playlist name or item");
+            return;
+        }
+
+        org.jellyfin.sdk.model.api.UserDto currentUser = KoinJavaComponent.<org.jellyfin.androidtv.auth.repository.UserRepository>get(org.jellyfin.androidtv.auth.repository.UserRepository.class).getCurrentUser().getValue();
+        if (currentUser == null || currentUser.getId() == null) {
+            Utils.showToast(requireContext(), "User not available");
+            return;
+        }
+
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(requireContext());
+        progressDialog.setMessage("Creating playlist...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        new android.os.AsyncTask<Void, Void, Boolean>() {
+            @Override
+            protected Boolean doInBackground(Void... voids) {
+                try {
+                    org.jellyfin.sdk.api.client.ApiClient apiClient = api.getValue();
+                    String baseUrl = apiClient.getBaseUrl();
+                    String accessToken = apiClient.getAccessToken();
+                    String userId = currentUser.getId().toString();
+                    String itemId = mBaseItem.getId().toString();
+
+                    String createPlaylistUrl = baseUrl + "/Playlists";
+
+                    org.json.JSONObject playlistBody = new org.json.JSONObject();
+                    playlistBody.put("Name", playlistName.trim());
+                    playlistBody.put("Ids", new org.json.JSONArray(java.util.Arrays.asList(itemId)));
+                    playlistBody.put("UserId", userId);
+                    playlistBody.put("MediaType", "Video");
+
+                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(createPlaylistUrl).openConnection();
+                    connection.setRequestMethod("POST");
+                    connection.setRequestProperty("X-Emby-Token", accessToken);
+                    connection.setRequestProperty("Content-Type", "application/json");
+                    connection.setDoOutput(true);
+                    connection.setConnectTimeout(30000);
+                    connection.setReadTimeout(30000);
+
+                    java.io.OutputStream os = connection.getOutputStream();
+                    os.write(playlistBody.toString().getBytes("UTF-8"));
+                    os.close();
+
+                    int responseCode = connection.getResponseCode();
+                    connection.disconnect();
+
+                    return responseCode == 200;
+
+                } catch (Exception e) {
+                    Timber.e(e, "Error creating playlist");
+                    return false;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Boolean success) {
+                progressDialog.dismiss();
+
+                if (success) {
+                    Utils.showToast(requireContext(), "Playlist created successfully");
+                } else {
+                    Utils.showToast(requireContext(), "Failed to create playlist");
+                }
+            }
+        }.execute();
     }
 }

@@ -31,6 +31,7 @@ import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.auth.repository.UserRepository
 import org.jellyfin.androidtv.constant.CustomMessage
 import org.jellyfin.androidtv.constant.HomeSectionType
+import org.jellyfin.androidtv.constant.QueryType
 import org.jellyfin.androidtv.data.model.DataRefreshService
 import org.jellyfin.androidtv.data.repository.CustomMessageRepository
 import org.jellyfin.androidtv.data.repository.NotificationsRepository
@@ -165,6 +166,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 						} else {
 							emptyList<HomeFragmentRow>()
 						}
+						HomeSectionType.RECENTLY_RELEASED_MOVIES -> helper.loadRecentlyReleasedMovies()
 						HomeSectionType.NONE -> null
 					}
 				}
@@ -322,7 +324,8 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 					if (i > 0) delay(90)
 
 					try {
-						if (force) {
+						if (force || rowAdapter.queryType == QueryType.Views) {
+							// Always force refresh Views adapters since they don't have re-retrieve triggers
 							rowAdapter.Retrieve()
 						} else {
 							rowAdapter.ReRetrieveIfNeeded()

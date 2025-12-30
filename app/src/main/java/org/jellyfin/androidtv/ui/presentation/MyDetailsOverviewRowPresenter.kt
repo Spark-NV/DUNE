@@ -189,13 +189,17 @@ class MyDetailsOverviewRowPresenter(
 
 			binding.fdButtonRow.apply {
 				descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-				isFocusable = true
-				isFocusableInTouchMode = true
+				// Only make the button row focusable if there are visible buttons
+				isFocusable = visibleButtons.isNotEmpty()
+				isFocusableInTouchMode = visibleButtons.isNotEmpty()
 
 				setOnFocusChangeListener { _, hasFocus ->
 					if (hasFocus && findFocus() == null) {
 						post {
-							visibleButtons.firstOrNull()?.requestFocus()
+							// Check if view is still attached before requesting focus
+							if (isAttachedToWindow) {
+								visibleButtons.firstOrNull()?.requestFocus()
+							}
 						}
 					}
 				}
@@ -230,7 +234,10 @@ class MyDetailsOverviewRowPresenter(
 
 			if (visibleButtons.isNotEmpty()) {
 				visibleButtons[0].post {
-					visibleButtons[0].requestFocus()
+					// Check if view is still attached before requesting focus
+					if (visibleButtons[0].isAttachedToWindow) {
+						visibleButtons[0].requestFocus()
+					}
 				}
 			}
 		}

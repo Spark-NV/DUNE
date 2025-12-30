@@ -13,6 +13,12 @@ import org.jellyfin.androidtv.data.querying.GetAdditionalPartsRequest
 import org.jellyfin.androidtv.data.querying.GetSpecialsRequest
 import org.jellyfin.androidtv.data.querying.GetTrailersRequest
 import org.jellyfin.androidtv.data.repository.UserViewsRepository
+import org.jellyfin.androidtv.preference.UserSettingPreferences
+import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
+import org.jellyfin.sdk.model.api.CollectionType
+import org.jellyfin.sdk.model.api.MediaType
+import java.util.UUID
 import org.jellyfin.androidtv.ui.GridButton
 import org.jellyfin.androidtv.ui.browsing.BrowseGridFragment.SortOption
 import org.jellyfin.sdk.api.client.ApiClient
@@ -42,6 +48,28 @@ import org.jellyfin.sdk.model.api.request.GetSimilarItemsRequest
 import org.jellyfin.sdk.model.api.request.GetUpcomingEpisodesRequest
 import timber.log.Timber
 import kotlin.math.min
+
+/**
+ * Custom BaseRowItem that strips number prefixes from library names for display
+ */
+class LibraryBaseRowItem(
+	item: BaseItemDto,
+	preferParentThumb: Boolean = false,
+	staticHeight: Boolean = false,
+	selectAction: BaseRowItemSelectAction = BaseRowItemSelectAction.ShowDetails,
+	preferSeriesPoster: Boolean = false,
+) : BaseItemDtoBaseRowItem(item, preferParentThumb, staticHeight, selectAction, preferSeriesPoster) {
+
+	override fun getName(context: Context): String? {
+		// Get the base name
+		val baseName = super.getName(context) ?: return null
+
+		// Strip number prefix from display name if present
+		val strippedName = Regex("^\\d+(.+)").find(baseName)?.groupValues?.get(1)?.trim() ?: baseName
+
+		return strippedName
+	}
+}
 
 fun <T : Any> ItemRowAdapter.setItems(
 	items: Collection<T>,
@@ -239,6 +267,8 @@ fun ItemRowAdapter.retrieveAdditionalParts(api: ApiClient, query: GetAdditionalP
 }
 
 fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserViewsRepository) {
+	val userSettingPreferences by org.koin.java.KoinJavaComponent.inject<UserSettingPreferences>(UserSettingPreferences::class.java)
+
 	ProcessLifecycleOwner.get().lifecycleScope.launch {
 		runCatching {
 			val response = withContext(Dispatchers.IO) {
@@ -247,14 +277,66 @@ fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserVi
 
 			val filteredItems = response.items
 				.filter { userViewsRepository.isSupported(it.collectionType) }
+				.filter { item ->
+					// Filter out Collections if the preference is enabled
+					!userSettingPreferences.get(userSettingPreferences.hideCollectionsFromHome) ||
+					item.name?.equals("Collections", ignoreCase = true) != true
+				}
 				.map { it.copy(displayPreferencesId = it.id.toString()) }
 
-			setItems(
-				items = filteredItems,
-				transform = { item, _ -> BaseItemDtoBaseRowItem(item) }
+			// Separate Playlists items (they go last) and other items
+			val playlistsItems = filteredItems.filter { it.name?.equals("Playlists", ignoreCase = true) == true }
+			val otherItems = filteredItems.filter { it.name?.equals("Playlists", ignoreCase = true) != true }
+
+			// Sort other items by number prefix (ascending), items without numbers go to the end
+			val sortedAndProcessedItems = otherItems.sortedWith { a, b ->
+				val aName = a.name ?: ""
+				val bName = b.name ?: ""
+
+				// Extract number prefix from names (digits at the start followed by non-digit)
+				val aMatch = Regex("^(\\d+)").find(aName)
+				val bMatch = Regex("^(\\d+)").find(bName)
+
+				val aNumber = aMatch?.groupValues?.get(1)?.toIntOrNull()
+				val bNumber = bMatch?.groupValues?.get(1)?.toIntOrNull()
+
+				when {
+					// Both have numbers - sort by number
+					aNumber != null && bNumber != null -> aNumber.compareTo(bNumber)
+					// Only first has number - it comes first
+					aNumber != null && bNumber == null -> -1
+					// Only second has number - it comes first
+					aNumber == null && bNumber != null -> 1
+					// Neither has number - sort alphabetically
+					else -> aName.compareTo(bName, ignoreCase = true)
+				}
+			} + playlistsItems
+
+			// Create a search item to add at the beginning
+			val searchItem = BaseItemDto(
+				id = UUID.fromString("12345678-1234-1234-1234-123456789abc"),
+				name = "Search",
+				type = BaseItemKind.USER_VIEW,
+				collectionType = null,
+				mediaType = MediaType.UNKNOWN,
+				displayPreferencesId = "search-item"
 			)
 
-			if (filteredItems.isEmpty()) removeRow()
+			// Always prepend search item to the list (it will replace any existing search item)
+			val itemsWithSearch = listOf(searchItem) + sortedAndProcessedItems
+
+			// Clear existing items before setting new ones to ensure clean refresh
+			clear()
+
+			setItems(
+				items = itemsWithSearch,
+				transform = { item, _ ->
+					val rowItem = LibraryBaseRowItem(item)
+					rowItem
+				}
+			)
+
+			if (sortedAndProcessedItems.isEmpty()) removeRow()
 		}.fold(
 			onSuccess = { notifyRetrieveFinished() },
 			onFailure = { error -> notifyRetrieveFinished(error as? Exception) }
@@ -269,12 +351,15 @@ fun ItemRowAdapter.retrieveSeasons(api: ApiClient, query: GetSeasonsRequest) {
 				api.tvShowsApi.getSeasons(query).content
 			}
 
+			// Filter out specials season (indexNumber == 0)
+			val filteredItems = response.items.filter { it.indexNumber == null || it.indexNumber != 0 }
+
 			setItems(
-				items = response.items,
+				items = filteredItems,
 				transform = { item, _ -> BaseItemDtoBaseRowItem(item) }
 			)
 
-			if (response.items.isEmpty()) removeRow()
+			if (filteredItems.isEmpty()) removeRow()
 		}.fold(
 			onSuccess = { notifyRetrieveFinished() },
 			onFailure = { error -> notifyRetrieveFinished(error as? Exception) }

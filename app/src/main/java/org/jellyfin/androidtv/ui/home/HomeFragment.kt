@@ -322,11 +322,8 @@ class HomeFragment : Fragment() {
 
         val toolbarBinding = if (useClassicLayout) classicBinding.toolbar else modernBinding.toolbar
         toolbarBinding.setContent {
-            val searchAction = {
-                navigationRepository.navigate(Destinations.search())
-            }
             val settingsAction = {
-                val intent = Intent(requireContext(), org.jellyfin.androidtv.ui.preference.PreferencesComposeActivity::class.java)
+                val intent = Intent(requireContext(), org.jellyfin.androidtv.ui.preference.PreferencesActivity::class.java)
                 startActivity(intent)
             }
             val switchUsersAction = {
@@ -369,7 +366,6 @@ class HomeFragment : Fragment() {
             }
 
             org.jellyfin.androidtv.ui.shared.toolbar.HomeToolbar(
-                openSearch = { searchAction() },
                 openLiveTv = { liveTvAction() },
                 openSettings = { settingsAction() },
                 switchUsers = { switchUsersAction() },
@@ -396,7 +392,6 @@ class HomeFragment : Fragment() {
                     }
                 }
                 is CarouselUiState.Success -> {
-                    val activeIndex by carouselViewModel.activeIndex.collectAsState()
                     FeaturedCarousel(
                         items = state.items,
                         onItemSelected = { item ->
@@ -406,11 +401,7 @@ class HomeFragment : Fragment() {
                             } catch (e: Exception) {
                             }
                         },
-                        isPaused = isCarouselPaused,
-                        activeIndex = activeIndex,
-                        onActiveIndexChanged = { newIndex ->
-                            carouselViewModel.setActiveIndex(newIndex)
-                        }
+                        isPaused = isCarouselPaused
                     )
 
                 }

@@ -39,7 +39,10 @@ abstract class SharedPreferenceStore(
 	private fun transaction(body: SharedPreferences.Editor.() -> Unit) {
 		val editor = sharedPreferences.edit()
 		editor.body()
-		editor.apply()
+		val success = editor.commit()
+		if (!success) {
+			Timber.w("SharedPreferences commit failed!")
+		}
 	}
 
 	override fun getInt(key: String, defaultValue: Int) =
@@ -54,8 +57,11 @@ abstract class SharedPreferenceStore(
 	override fun getBool(key: String, defaultValue: Boolean) =
 		sharedPreferences.getBoolean(key, defaultValue)
 
-	override fun getString(key: String, defaultValue: String) =
-		sharedPreferences.getString(key, defaultValue) ?: defaultValue
+	override fun getString(key: String, defaultValue: String): String {
+		val value = sharedPreferences.getString(key, defaultValue) ?: defaultValue
+		Timber.d("[SharedPreferenceStore] getString: key='$key', default='$defaultValue', returned='$value'")
+		return value
+	}
 
 	override fun setInt(key: String, value: Int) = transaction { putInt(key, value) }
 	override fun setLong(key: String, value: Long) = transaction { putLong(key, value) }
@@ -63,8 +69,11 @@ abstract class SharedPreferenceStore(
 	override fun setBool(key: String, value: Boolean) =
 		transaction { putBoolean(key, value) }
 
-	override fun setString(key: String, value: String) =
+	override fun setString(key: String, value: String) {
+		Timber.d("[SharedPreferenceStore] setString called: key='$key', value='$value'")
 		transaction { putString(key, value) }
+		Timber.d("[SharedPreferenceStore] setString completed: key='$key', value='$value'")
+	}
 
 	override fun <T : Enum<T>> getEnum(preference: Preference<T>): T {
 		val stringValue = getString(preference.key, "")

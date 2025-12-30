@@ -27,18 +27,19 @@ class UserPreferencesScreen : OptionsFragment() {
 			}
 
 			link {
-				setTitle(R.string.pref_playback)
-				setContent(R.string.pref_playback_description)
+				setTitle(R.string.pref_scrapers)
+				setContent(R.string.pref_scrapers_description)
 				icon = R.drawable.ic_playback
 				withFragment<PlaybackPreferencesScreen>()
 			}
 
-			link {
+			// Crash reporting button removed
+			/*link {
 				setTitle(R.string.pref_telemetry_category)
 				setContent(R.string.pref_telemetry_description)
 				icon = R.drawable.ic_crash
 				withFragment<CrashReportingPreferencesScreen>()
-			}
+			}*/
 
 			link {
 				setTitle(R.string.pref_developer_link)

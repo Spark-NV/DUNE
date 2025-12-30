@@ -5,9 +5,9 @@
     <string name="pref_subtitles_vertical_offset_center">Center</string>
     <string name="media_image">Media image</string>
     <string name="profile_picture">Profile picture</string>
-    <string name="app_name">DUNE</string>
-    <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">DUNE</string>
-    <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">DUNE Debug</string>
+    <string name="app_name">Lumina</string>
+    <string name="app_name_release" translatable="false" tools:ignore="UnusedResources">Lumina</string>
+    <string name="app_name_debug" translatable="false" tools:ignore="UnusedResources">Lumina Debug</string>
     <string name="video_error_unknown_error">Failed to load video</string>
     <string name="loading">Loading…</string>
     <string name="btn_cancel">Cancel</string>
@@ -56,7 +56,7 @@
     <string name="lbl_coming_up">Coming up</string>
     <string name="lbl_favorite_channels">Favorite channels</string>
     <string name="lbl_other_channels">Other channels</string>
-    <string name="lbl_collections">Collections</string>
+    <string name="lbl_collections">View Collections</string>
     <string name="lbl_my_collections">Collections</string>
     <string name="lbl_movies">Movies</string>
     <string name="lbl_tv_series">TV series</string>
@@ -70,6 +70,11 @@
 
 
     <string name="lbl_play">Play</string>
+    <string name="select_stream">Select Stream</string>
+    <string name="no_streams_found">No streams found</string>
+    <string name="available_streams">Available Streams</string>
+    <string name="invalid_stream_url">Invalid stream URL</string>
+    <string name="error_launching_stream">Error launching stream</string>
     <string name="lbl_pause">Pause</string>
     <string name="lbl_cancel">Cancel</string>
     <string name="lbl_cancel_recording">Cancel recording</string>
@@ -92,6 +97,7 @@
     <string name="lbl_upcoming">Upcoming</string>
     <string name="lbl_favorite">Favorite</string>
     <string name="lbl_watched">Watched</string>
+    <string name="lbl_has_been_marked_as">has been marked as</string>
     <string name="lbl_sd">SD</string>
     <string name="lbl_runs">"Runs"</string>
     <string name="runtime_hours_minutes">%1$dh %2$dm</string>
@@ -209,7 +215,7 @@
     <string name="lbl_episodes">Episodes</string>
     <string name="lbl_enable_cinema_mode">Cinema mode</string>
     <string name="sum_enable_cinema_mode">Play available intros and previews before starting a movie</string>
-    <string name="lbl_playlists">Playlists</string>
+    <string name="lbl_playlists">Add To A Playlist</string>
     <string name="lbl_programs">Programs</string>
     <string name="msg_items_added">" items added"</string>
     <string name="lbl_add_to_queue">Add to queue</string>
@@ -304,6 +310,8 @@
     <string name="lbl_my_media_small">My Media (Small)</string>
     <string name="lbl_my_media_extra_small">Media Folders</string>
     <string name="desc_my_media_extra_small">Display My media folders as buttons </string>
+    <string name="lbl_hide_collections">Hide Collections</string>
+    <string name="desc_hide_collections">Hide the Collections library from the home screen</string>
     <string name="pref_theme_purple_haze">Lavender Haze</string>
     <string name="pref_theme_dark_purple">Dark Purple</string>
     <string name="pref_theme_dark">Dark Matter (Restart required)</string>
@@ -337,6 +345,7 @@
     <string name="bitrate_mbit">%1$,.0f Mbit/s</string>
     <string name="bitrate_kbit">%1$,.0f Kbit/s</string>
     <string name="mark_watched">Mark watched</string>
+    <string name="mark_unwatched">Mark unwatched</string>
     <string name="mark_watched_message">The item didn\'t appear to play as long as its duration. Mark watched?</string>
     <string name="no_player">No player</string>
     <string name="no_player_message">It doesn\'t appear you have a video capable app installed.  This option requires you install a 3rd party application for playing video content.</string>
@@ -411,6 +420,9 @@
     <string name="image_type_poster">Poster</string>
     <string name="image_type_thumbnail">Thumbnail</string>
     <string name="image_type_banner">Banner</string>
+    <string name="image_size_xxxsmallest">XXX-Smallest</string>
+    <string name="image_size_xxsmallest">XX-Smallest</string>
+    <string name="image_size_xsmallest">X-Smallest</string>
     <string name="image_size_smallest">Smallest</string>
     <string name="image_size_small">Small</string>
     <string name="image_size_medium">Medium</string>
@@ -429,12 +441,14 @@
     <string name="card_size_large">Large</string>
     <string name="pref_developer_link">Developer options</string>
     <string name="pref_developer_link_description">Advanced and experimental features</string>
+    <string name="pref_back_button_cooldown">Back button cooldown</string>
+    <string name="pref_back_button_cooldown_desc">Minimum time between back button presses and after fragment loads to prevent rapid navigation issues</string>
     <string name="lbl_hidden">Hidden</string>
     <string name="discovered_servers_title">Discovered servers</string>
     <string name="discovered_servers_empty">No servers found on local network.</string>
     <string name="connect_manually_by_address">Enter server address</string>
     <string name="login_help_title">Need help?</string>
-    <string name="login_help_description">Dune requires a server to connect with. Visit the documentation at docs.jellyfin.org or scan the QR code to get started.</string>
+    <string name="login_help_description">Lumina requires a server to connect with. Visit the documentation at docs.jellyfin.org or scan the QR code to get started.</string>
     <string name="pref_watched_indicator">Show watched indicators</string>
     <string name="pref_show_resolution_badge">Show resolution badge</string>
     <string name="pref_show_audio_codec_badge">Show Audio Codec badge</string>
@@ -452,10 +466,10 @@
     <string name="user_picker_last_user_title">Most recently used</string>
     <string name="user_picker_last_user_summary">Use the last active account</string>
     <string name="lbl_switch_user">Users</string>
-    <string name="no_network_permissions">Dune requires network permissions to function</string>
+    <string name="no_network_permissions">Lumina requires network permissions to function</string>
     <string name="press_to_close">Press to close</string>
     <string name="saved_servers">Saved servers</string>
-    <string name="welcome_title">Welcome to Dune!</string>
+    <string name="welcome_title">Welcome to Lumina!</string>
     <string name="welcome_content">Connect to your server to get started.</string>
     <string name="no_user_warning">We couldn\'t find any accounts!\nAdd a new account by pressing the \"Add account\" button.</string>
     <string name="who_is_watching">Who\'s watching?</string>
@@ -506,9 +520,11 @@
     <string name="home_section_continue_watching_combined">Continue watching combined</string>
     <string name="home_section_continue_nextup">Continue watching</string>
     <string name="home_section_livetv">Live TV</string>
+    <string name="home_section_recently_released_movies">Recently released movies</string>
     <string name="home_section_none">None</string>
     <string name="home_section_i">Home section %1$d</string>
-    <string name="searchable_hint">Search Dune</string>
+    <string name="shelf_i">Shelf %1$d</string>
+    <string name="searchable_hint">Search Lumina</string>
     <string name="searchable_settings_description">Media</string>
     <string name="pref_subtitles_background_title">Enable background</string>
     <string name="pref_subtitles_background_summary">Show a black background behind the subtitles</string>
@@ -544,6 +560,85 @@
     <string name="pref_login_description">Servers, accounts, automatic sign in</string>
     <string name="pref_customization_description">Theme, home, remapping</string>
     <string name="pref_playback_description">Video, subtitles, live tv, next up</string>
+    <string name="pref_scrapers">Scrapers</string>
+    <string name="pref_scrapers_description">Torrentio, AIOStreams, Filters</string>
+    <string name="pref_stream_scrapers">Stream Scrapers</string>
+    <string name="pref_enable_torrentio">Enable Torrentio</string>
+    <string name="pref_enable_torrentio_description">Enable Torrentio scraper for stream links</string>
+    <string name="pref_enable_aiostreams">Enable AIOStreams</string>
+    <string name="pref_enable_aiostreams_description">Enable AIOStreams scraper for stream links</string>
+    <string name="pref_stream_sort">Stream Sorting</string>
+    <string name="pref_stream_sort_description">Sort streams by size</string>
+    <string name="pref_stream_filters">Stream Filters</string>
+    <string name="pref_stream_sort_size_descending">Size Descending</string>
+    <string name="pref_stream_sort_size_ascending">Size Ascending</string>
+    <string name="pref_stream_min_size_movies">Min Size (Movies)</string>
+    <string name="pref_stream_min_size_movies_description">Filter out movie streams smaller than this size</string>
+    <string name="pref_stream_max_size_movies">Max Size (Movies)</string>
+    <string name="pref_stream_max_size_movies_description">Filter out movie streams larger than this size</string>
+    <string name="pref_stream_min_size_episodes">Min Size (Episodes)</string>
+    <string name="pref_stream_min_size_episodes_description">Filter out episode streams smaller than this size</string>
+    <string name="pref_stream_max_size_episodes">Max Size (Episodes)</string>
+    <string name="pref_stream_max_size_episodes_description">Filter out episode streams larger than this size</string>
+    <string name="pref_stream_filter_disabled">Disabled</string>
+    <!-- Movie min sizes -->
+    <string name="pref_stream_min_size_movies_300mb">300 MB</string>
+    <string name="pref_stream_min_size_movies_500mb">500 MB</string>
+    <string name="pref_stream_min_size_movies_1gb">1 GB</string>
+    <string name="pref_stream_min_size_movies_2gb">2 GB</string>
+    <string name="pref_stream_min_size_movies_3gb">3 GB</string>
+    <string name="pref_stream_min_size_movies_4gb">4 GB</string>
+    <string name="pref_stream_min_size_movies_5gb">5 GB</string>
+    <string name="pref_stream_min_size_movies_6gb">6 GB</string>
+    <string name="pref_stream_min_size_movies_8gb">8 GB</string>
+    <string name="pref_stream_min_size_movies_10gb">10 GB</string>
+    <string name="pref_stream_min_size_movies_12gb">12 GB</string>
+    <string name="pref_stream_min_size_movies_15gb">15 GB</string>
+    <string name="pref_stream_min_size_movies_20gb">20 GB</string>
+    <!-- Movie max sizes -->
+    <string name="pref_stream_max_size_movies_2gb">2 GB</string>
+    <string name="pref_stream_max_size_movies_3gb">3 GB</string>
+    <string name="pref_stream_max_size_movies_4gb">4 GB</string>
+    <string name="pref_stream_max_size_movies_5gb">5 GB</string>
+    <string name="pref_stream_max_size_movies_7gb">7 GB</string>
+    <string name="pref_stream_max_size_movies_8gb">8 GB</string>
+    <string name="pref_stream_max_size_movies_10gb">10 GB</string>
+    <string name="pref_stream_max_size_movies_12gb">12 GB</string>
+    <string name="pref_stream_max_size_movies_15gb">15 GB</string>
+    <string name="pref_stream_max_size_movies_17gb">17 GB</string>
+    <string name="pref_stream_max_size_movies_20gb">20 GB</string>
+    <string name="pref_stream_max_size_movies_25gb">25 GB</string>
+    <string name="pref_stream_max_size_movies_30gb">30 GB</string>
+    <string name="pref_stream_max_size_movies_50gb">50 GB</string>
+    <string name="pref_stream_max_size_movies_75gb">75 GB</string>
+    <!-- Episode min sizes -->
+    <string name="pref_stream_min_size_episodes_50mb">50 MB</string>
+    <string name="pref_stream_min_size_episodes_100mb">100 MB</string>
+    <string name="pref_stream_min_size_episodes_200mb">200 MB</string>
+    <string name="pref_stream_min_size_episodes_300mb">300 MB</string>
+    <string name="pref_stream_min_size_episodes_500mb">500 MB</string>
+    <string name="pref_stream_min_size_episodes_750mb">750 MB</string>
+    <string name="pref_stream_min_size_episodes_1gb">1 GB</string>
+    <string name="pref_stream_min_size_episodes_2gb">2 GB</string>
+    <string name="pref_stream_min_size_episodes_3gb">3 GB</string>
+    <string name="pref_stream_min_size_episodes_4gb">4 GB</string>
+    <string name="pref_stream_min_size_episodes_5gb">5 GB</string>
+    <!-- Episode max sizes -->
+    <string name="pref_stream_max_size_episodes_1gb">1 GB</string>
+    <string name="pref_stream_max_size_episodes_2gb">2 GB</string>
+    <string name="pref_stream_max_size_episodes_3gb">3 GB</string>
+    <string name="pref_stream_max_size_episodes_4gb">4 GB</string>
+    <string name="pref_stream_max_size_episodes_5gb">5 GB</string>
+    <string name="pref_stream_max_size_episodes_7gb">7 GB</string>
+    <string name="pref_stream_max_size_episodes_8gb">8 GB</string>
+    <string name="pref_stream_max_size_episodes_10gb">10 GB</string>
+    <string name="pref_stream_max_size_episodes_12gb">12 GB</string>
+    <string name="pref_stream_max_size_episodes_15gb">15 GB</string>
+    <string name="pref_premiumize_api_key">Premiumize API Key</string>
+    <string name="pref_premiumize_api_key_description">API key for Premiumize (required for Torrentio)</string>
+    <string name="pref_aiostreams_config">AIOStreams Config</string>
+    <string name="pref_aiostreams_config_description">Config string for AIOStreams API (required for AIOStreams)</string>
+    <string name="pref_saved_value">Saved Value</string>
     <string name="pref_video">Video</string>
     <string name="pref_subtitles">Subtitles</string>
     <string name="pref_audio">Audio</string>
@@ -620,6 +715,19 @@
     <string name="pref_disk_cache_size_1gb">1 GB</string>
     <string name="pref_disk_cache_size_1_5gb">1.5 GB</string>
     <string name="pref_disk_cache_size_2gb">2 GB</string>
+    <string name="pref_disk_cache_size_3gb">3 GB</string>
+    <string name="pref_disk_cache_size_4gb">4 GB</string>
+    <string name="pref_disk_cache_size_5gb">5 GB</string>
+    <string name="pref_disk_cache_size_6gb">6 GB</string>
+    <string name="pref_disk_cache_size_7gb">7 GB</string>
+    <string name="pref_disk_cache_size_8gb">8 GB</string>
+    <string name="pref_disk_cache_size_9gb">9 GB</string>
+    <string name="pref_disk_cache_size_10gb">10 GB</string>
+    <string name="pref_disk_cache_size_11gb">11 GB</string>
+    <string name="pref_disk_cache_size_12gb">12 GB</string>
+    <string name="pref_disk_cache_size_13gb">13 GB</string>
+    <string name="pref_disk_cache_size_14gb">14 GB</string>
+    <string name="pref_disk_cache_size_15gb">15 GB</string>
 
     <!-- Restart dialog strings -->
     <string name="restart_required">Restart Required</string>
@@ -776,7 +884,7 @@
     <string name="show_fantasy_row">Show Fantasy Row</string>
 
     <!-- Exit confirmation dialog -->
-    <string name="exit_app_title">Exit DUNE</string>
+    <string name="exit_app_title">Exit Lumina</string>
     <string name="exit_app_message">Are you sure you want to exit?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>

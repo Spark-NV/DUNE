@@ -164,7 +164,7 @@ val appModule = module {
 	single<NotificationsRepository> { NotificationsRepositoryImpl(get(), get()) }
 	single<ItemMutationRepository> { ItemMutationRepositoryImpl(get(), get()) }
 	single<CustomMessageRepository> { CustomMessageRepositoryImpl() }
-	single<NavigationRepository> { NavigationRepositoryImpl(Destinations.home) }
+	single<NavigationRepository> { NavigationRepositoryImpl(Destinations.home, get<UserPreferences>()) }
 	single<SearchRepository> { SearchRepositoryImpl(get()) }
 	single<MediaSegmentRepository> { MediaSegmentRepositoryImpl(get(), get()) }
 	single { org.jellyfin.androidtv.ui.itemdetail.ThemeSongs(androidContext()) }

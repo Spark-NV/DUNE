@@ -11,6 +11,8 @@ import org.jellyfin.androidtv.ui.browsing.GenericFolderFragment
 import org.jellyfin.androidtv.ui.home.HomeFragment
 import org.jellyfin.androidtv.ui.itemdetail.FullDetailsFragment
 import org.jellyfin.androidtv.ui.itemdetail.ItemListFragment
+import org.jellyfin.androidtv.ui.itemdetail.StreamSelectionFragment
+import org.jellyfin.androidtv.ui.itemdetail.StreamDataParcelable
 import org.jellyfin.androidtv.ui.itemdetail.MusicFavoritesListFragment
 import org.jellyfin.androidtv.ui.livetv.LiveTvGuideFragment
 import org.jellyfin.androidtv.ui.picture.PictureViewerFragment
@@ -62,6 +64,18 @@ object Destinations {
 	// Item details
 	fun itemDetails(item: UUID) = fragmentDestination<FullDetailsFragment>(
 		"ItemId" to item.toString(),
+	)
+
+	fun streamSelection(
+		mediaTitle: String,
+		mediaSubtitle: String = "",
+		itemId: String = "",
+		resumePosition: Int = 0
+	) = fragmentDestination<StreamSelectionFragment>(
+		"media_title" to mediaTitle,
+		"media_subtitle" to mediaSubtitle,
+		"item_id" to itemId,
+		"resume_position" to resumePosition,
 	)
 
 	// TODO only pass item id instead of complete JSON to browsing destinations

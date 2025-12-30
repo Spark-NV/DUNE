@@ -13,6 +13,11 @@ import org.jellyfin.androidtv.preference.constant.NextUpBehavior
 import org.jellyfin.androidtv.preference.constant.SkipDuration
 import org.jellyfin.androidtv.preference.constant.SubtitleLanguage
 import org.jellyfin.androidtv.preference.constant.AudioLanguage
+import org.jellyfin.androidtv.preference.constant.StreamSortBy
+import org.jellyfin.androidtv.preference.constant.StreamMinSizeMovies
+import org.jellyfin.androidtv.preference.constant.StreamMaxSizeMovies
+import org.jellyfin.androidtv.preference.constant.StreamMinSizeEpisodes
+import org.jellyfin.androidtv.preference.constant.StreamMaxSizeEpisodes
 import org.jellyfin.androidtv.ui.playback.segment.MediaSegmentAction
 import org.jellyfin.androidtv.ui.playback.segment.MediaSegmentRepository
 import org.jellyfin.androidtv.ui.preference.custom.DurationSeekBarPreference
@@ -39,286 +44,350 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 	override val screen by optionsScreen {
 		setTitle(R.string.pref_playback)
 
+		// Removed: Customization section (not needed for external player)
+		// category {
+		// 	setTitle(R.string.pref_customization)
+		//
+		// 	enum<NextUpBehavior> {
+		// 		setTitle(R.string.pref_next_up_behavior_title)
+		// 		bind(userPreferences, UserPreferences.nextUpBehavior)
+		// 		depends { userPreferences[UserPreferences.mediaQueuingEnabled] }
+		// 	}
+		//
+		// 	@Suppress("MagicNumber")
+		// 	seekbar {
+		// 		setTitle(R.string.pref_next_up_timeout_title)
+		// 		setContent(R.string.pref_next_up_timeout_summary)
+		// 		min = 0 // value of 0 disables timer
+		// 		max = 30_000
+		// 		increment = 1_000
+		// 		valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+		// 			override fun display(value: Int): String = when (value) {
+		// 				NEXTUP_TIMER_DISABLED -> getString(R.string.pref_next_up_timeout_disabled)
+		// 				else -> "${value / 1000}s"
+		// 			}
+		// 		}
+		// 		bind(userPreferences, UserPreferences.nextUpTimeout)
+		// 		depends {
+		// 			userPreferences[UserPreferences.mediaQueuingEnabled]
+		// 				&& userPreferences[UserPreferences.nextUpBehavior] != NextUpBehavior.DISABLED
+		// 		}
+		// 	}
+		//
+		// 	checkbox {
+		// 		setTitle(R.string.lbl_enable_cinema_mode)
+		// 		setContent(R.string.sum_enable_cinema_mode)
+		// 		bind(userPreferences, UserPreferences.cinemaModeEnabled)
+		// 	}
+		//
+		// 	@Suppress("MagicNumber")
+		// 	seekbar {
+		// 		setTitle(R.string.skip_forward_length)
+		// 		setContent(R.string.skip_forward_length)
+		// 		min = 5_000
+		// 		max = 30_000
+		// 		increment = 5_000
+		// 		valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+		// 			override fun display(value: Int) = "${value / 1000}s"
+		// 		}
+		// 		bind(userSettingPreferences, userSettingPreferences.skipForwardLength)
+		// 	}
+		//
+		// 	@Suppress("MagicNumber")
+		// 	seekbar {
+		// 		setTitle(R.string.player_controls_hide_duration)
+		// 		setContent(R.string.player_controls_hide_duration_summary)
+		// 		min = 1_000
+		// 		max = 30_000
+		// 		increment = 1_000
+		// 		valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+		// 			override fun display(value: Int) = "${value / 1000}s"
+		// 		}
+		// 		bind(userPreferences, UserPreferences.playerControlsHideDuration)
+		// 	}
+		// }
+
+		// Removed: Audio section (not needed for external player)
+		// category {
+		// 	setTitle(R.string.pref_audio)
+		//
+		// 	enum<AudioBehavior> {
+		// 		setTitle(R.string.lbl_audio_output)
+		// 		bind(userPreferences, UserPreferences.audioBehaviour)
+		// 	}
+		//
+		// 	enum<AudioLanguage> {
+		// 		setTitle(R.string.pref_audio_default_language)
+		//
+		// 		// Add all enum values with their display names
+		// 		AudioLanguage.values().forEach { language ->
+		// 			entry(language.name, language.name)
+		// 		}
+		//
+		// 		bind(userPreferences, UserPreferences.defaultAudioLanguage)
+		// 	}
+		//
+		// 	checkbox {
+		// 		setTitle(R.string.pref_skip_commentary_tracks)
+		// 		bind(userPreferences, UserPreferences.skipCommentaryTracks)
+		// 	}
+		// }
+
+		// Removed: Subtitles section (not needed for external player)
+		// category {
+		// 	setTitle(R.string.pref_subtitles)
+		// 	subtitlePreview {}
+		//
+		//
+		// 	@Suppress("MagicNumber")
+		// 	colorList {
+		// 		setTitle(R.string.lbl_subtitle_text_color)
+		// 		entries = mapOf(
+		// 			Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
+		// 			Color(0XFF000000L) to context.getString(R.string.color_black),
+		// 			Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
+		// 			Color(0xFFC80000L) to context.getString(R.string.color_red),
+		// 			Color(0xFF00C800L) to context.getString(R.string.color_green),
+		// 			Color(0xFF0000C8L) to context.getString(R.string.color_blue),
+		// 			Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
+		// 			Color(0xFFD60080L) to context.getString(R.string.color_pink),
+		// 			Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
+		// 		)
+		//
+		// 		bind {
+		// 			get { Color(userPreferences[UserPreferences.subtitlesTextColor]) }
+		// 			set { value -> userPreferences[UserPreferences.subtitlesTextColor] = value.toArgb().toLong() }
+		// 			default { Color(UserPreferences.subtitlesTextColor.defaultValue) }
+		// 		}
+		// 	}
+		//
+		// 	colorList {
+		// 		setTitle(R.string.lbl_subtitle_background_color)
+		// 		entries = mapOf(
+		// 			Color(0x00FFFFFFL) to context.getString(R.string.lbl_none),
+		// 			Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
+		// 			Color(0XFF000000L) to context.getString(R.string.color_black),
+		// 			Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
+		// 			Color(0xFFC80000L) to context.getString(R.string.color_red),
+		// 			Color(0xFF00C800L) to context.getString(R.string.color_green),
+		// 			Color(0xFF0000C8L) to context.getString(R.string.color_blue),
+		// 			Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
+		// 			Color(0xFFD60080L) to context.getString(R.string.color_pink),
+		// 			Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
+		// 		)
+		//
+		// 		// Keep the alpha of the saved color as we're using a separate option to change alpha
+		// 		bind {
+		// 			get {
+		// 				Color(userPreferences[UserPreferences.subtitlesBackgroundColor])
+		// 					.let { it.copy(alpha = if (it.alpha == 0f) 0f else 1f) }
+		// 			}
+		// 			set { value ->
+		// 				userPreferences[UserPreferences.subtitlesBackgroundColor] = value
+		// 					.let {
+		// 						val currentAlpha = Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha
+		// 							.takeIf { alpha -> alpha != 0f }
+		// 							?: 1f
+		// 						it.copy(alpha = if (it.alpha == 0f) 0f else currentAlpha)
+		// 					}
+		// 					.toArgb()
+		// 					.toLong()
+		// 			}
+		// 			default { Color(UserPreferences.subtitlesBackgroundColor.defaultValue) }
+		// 		}
+		// 	}
+		//
+		// 	@Suppress("MagicNumber")
+		// 	seekbar {
+		// 		setTitle(R.string.pref_subtitles_background_opacity)
+		// 		min = 20
+		// 		max = 100
+		// 		increment = 10
+		// 		valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+		// 			override fun display(value: Int): String = "$value%"
+		// 		}
+		//
+		// 		// Only set the alpha on the existing color, which is changed with the option above
+		// 		bind {
+		// 			get { (Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha * 100f).roundToInt() }
+		// 			set { value ->
+		// 				userPreferences[UserPreferences.subtitlesBackgroundColor] =
+		// 					Color(userPreferences[UserPreferences.subtitlesBackgroundColor])
+		// 						.copy(alpha = value / 100f)
+		// 						.toArgb()
+		// 						.toLong()
+		// 			}
+		// 			default { (Color(UserPreferences.subtitlesBackgroundColor.defaultValue).alpha * 100f).roundToInt() }
+		// 		}
+		//
+		// 		depends {
+		// 			Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha > 0f
+		// 		}
+		// 	}
+		//
+		//
+		//
+		// 	checkbox {
+		// 		setTitle(R.string.pref_subtitles_bold)
+		// 		bind {
+		// 			val boldWeight = 700
+		// 			val normalWeight = 400
+		// 			get { userPreferences[UserPreferences.subtitlesTextWeightValue] == boldWeight }
+		// 			set { checked -> userPreferences[UserPreferences.subtitlesTextWeightValue] = if (checked) boldWeight else normalWeight }
+		// 			default { false }
+		// 		}
+		// 	}
+		//
+		// 	enum<SubtitleLanguage> {
+		// 		setTitle(R.string.pref_subtitle_default_language)
+		//
+		// 		// Add all enum values with their display names
+		// 		SubtitleLanguage.values().forEach { language ->
+		// 			entry(language.name, language.displayName)
+		// 		}
+		//
+		// 		bind(userPreferences, UserPreferences.defaultSubtitleLanguage)
+		//
+		//
+		// 	}
+		//
+		// 	colorList {
+		// 		setTitle(R.string.lbl_subtitle_text_stroke_color)
+		// 		entries = mapOf(
+		// 			Color(0x00FFFFFFL) to context.getString(R.string.lbl_none),
+		// 			Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
+		// 			Color(0XFF000000L) to context.getString(R.string.color_black),
+		// 			Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
+		// 			Color(0xFFC80000L) to context.getString(R.string.color_red),
+		// 			Color(0xFF00C800L) to context.getString(R.string.color_green),
+		// 			Color(0xFF0000C8L) to context.getString(R.string.color_blue),
+		// 			Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
+		// 			Color(0xFFD60080L) to context.getString(R.string.color_pink),
+		// 			Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
+		// 		)
+		//
+		// 		bind {
+		// 			get { Color(userPreferences[UserPreferences.subtitleTextStrokeColor]) }
+		// 			set { value -> userPreferences[UserPreferences.subtitleTextStrokeColor] = value.toArgb().toLong() }
+		// 			default { Color(UserPreferences.subtitleTextStrokeColor.defaultValue) }
+		// 		}
+		// 	}
+		//
+		// 	@Suppress("MagicNumber")
+		// 	// Stored in floats (1f = 100%) but seekbar preference works with integers only
+		// 	seekbar {
+		// 		setTitle(R.string.pref_subtitles_size)
+		// 		min = 25 // 0.25f
+		// 		max = 250 // 2.5f
+		// 		increment = 25 // 0.25f
+		// 		valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
+		// 			override fun display(value: Int): String = "$value%"
+		// 		}
+		//
+		// 		bind {
+		// 			get { (userPreferences[UserPreferences.subtitlesTextSize] * 100f).roundToInt() }
+		// 			set { value -> userPreferences[UserPreferences.subtitlesTextSize] = value / 100f }
+		// 			default { (UserPreferences.subtitlesTextSize.defaultValue * 100f).roundToInt() }
+		// 		}
+		// 	}
+		// }
+
+		// Removed: Media segment actions section (not needed for external player)
+		// category {
+		// 	setTitle(R.string.pref_mediasegment_actions)
+		//
+		// 	for (segmentType in MediaSegmentRepository.SupportedTypes) {
+		// 		enum<MediaSegmentAction> {
+		// 			when (segmentType) {
+		// 				MediaSegmentType.UNKNOWN -> R.string.segment_type_unknown
+		// 				MediaSegmentType.COMMERCIAL -> R.string.segment_type_commercial
+		// 				MediaSegmentType.PREVIEW -> R.string.segment_type_preview
+		// 				MediaSegmentType.RECAP -> R.string.segment_type_recap
+		// 				MediaSegmentType.OUTRO -> R.string.segment_type_outro
+		// 				MediaSegmentType.INTRO -> R.string.segment_type_intro
+		// 			}.let(::setTitle)
+		//
+		// 			bind {
+		// 				get { mediaSegmentRepository.getDefaultSegmentTypeAction(segmentType) }
+		// 				set { value -> mediaSegmentRepository.setDefaultSegmentTypeAction(segmentType, value) }
+		// 				default { MediaSegmentAction.NOTHING }
+		// 			}
+		// 		}
+		// 	}
+		//
+		// 	enum<SkipDuration> {
+		// 		setTitle(R.string.pref_skip_duration)
+		// 		bind(userPreferences, UserPreferences.skipDuration)
+		// 	}
+		// }
+
+		// Removed: Advanced settings section (not needed for external player)
+		// category {
+		// 	setTitle(R.string.advanced_settings)
+		//
+		// 	link {
+		// 		setTitle(R.string.pref_playback_advanced)
+		// 		icon = R.drawable.ic_more
+		// 		withFragment<PlaybackAdvancedPreferencesScreen>()
+		// 	}
+		// }
+
 		category {
-			setTitle(R.string.pref_customization)
-
-			enum<NextUpBehavior> {
-				setTitle(R.string.pref_next_up_behavior_title)
-				bind(userPreferences, UserPreferences.nextUpBehavior)
-				depends { userPreferences[UserPreferences.mediaQueuingEnabled] }
-			}
-
-			@Suppress("MagicNumber")
-			seekbar {
-				setTitle(R.string.pref_next_up_timeout_title)
-				setContent(R.string.pref_next_up_timeout_summary)
-				min = 0 // value of 0 disables timer
-				max = 30_000
-				increment = 1_000
-				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
-					override fun display(value: Int): String = when (value) {
-						NEXTUP_TIMER_DISABLED -> getString(R.string.pref_next_up_timeout_disabled)
-						else -> "${value / 1000}s"
-					}
-				}
-				bind(userPreferences, UserPreferences.nextUpTimeout)
-				depends {
-					userPreferences[UserPreferences.mediaQueuingEnabled]
-						&& userPreferences[UserPreferences.nextUpBehavior] != NextUpBehavior.DISABLED
-				}
-			}
+			setTitle(R.string.pref_stream_scrapers)
 
 			checkbox {
-				setTitle(R.string.lbl_enable_cinema_mode)
-				setContent(R.string.sum_enable_cinema_mode)
-				bind(userPreferences, UserPreferences.cinemaModeEnabled)
+				setTitle(R.string.pref_enable_torrentio)
+				setContent(R.string.pref_enable_torrentio_description)
+				bind(userPreferences, UserPreferences.torrentioEnabled)
 			}
-
-			@Suppress("MagicNumber")
-			seekbar {
-				setTitle(R.string.skip_forward_length)
-				setContent(R.string.skip_forward_length)
-				min = 5_000
-				max = 30_000
-				increment = 5_000
-				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
-					override fun display(value: Int) = "${value / 1000}s"
-				}
-				bind(userSettingPreferences, userSettingPreferences.skipForwardLength)
-			}
-
-			@Suppress("MagicNumber")
-			seekbar {
-				setTitle(R.string.player_controls_hide_duration)
-				setContent(R.string.player_controls_hide_duration_summary)
-				min = 1_000
-				max = 30_000
-				increment = 1_000
-				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
-					override fun display(value: Int) = "${value / 1000}s"
-				}
-				bind(userPreferences, UserPreferences.playerControlsHideDuration)
-			}
-		}
-
-		category {
-			setTitle(R.string.pref_audio)
-
-			enum<AudioBehavior> {
-				setTitle(R.string.lbl_audio_output)
-				bind(userPreferences, UserPreferences.audioBehaviour)
-			}
-
-			enum<AudioLanguage> {
-				setTitle(R.string.pref_audio_default_language)
-
-				// Add all enum values with their display names
-				AudioLanguage.values().forEach { language ->
-					entry(language.name, language.name)
-				}
-
-				bind(userPreferences, UserPreferences.defaultAudioLanguage)
-			}
-
-			checkbox {
-				setTitle(R.string.pref_skip_commentary_tracks)
-				bind(userPreferences, UserPreferences.skipCommentaryTracks)
-			}
-		}
-
-		category {
-			setTitle(R.string.pref_subtitles)
-			subtitlePreview {}
-
-
-			@Suppress("MagicNumber")
-			colorList {
-				setTitle(R.string.lbl_subtitle_text_color)
-				entries = mapOf(
-					Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
-					Color(0XFF000000L) to context.getString(R.string.color_black),
-					Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
-					Color(0xFFC80000L) to context.getString(R.string.color_red),
-					Color(0xFF00C800L) to context.getString(R.string.color_green),
-					Color(0xFF0000C8L) to context.getString(R.string.color_blue),
-					Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
-					Color(0xFFD60080L) to context.getString(R.string.color_pink),
-					Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
-				)
-
-				bind {
-					get { Color(userPreferences[UserPreferences.subtitlesTextColor]) }
-					set { value -> userPreferences[UserPreferences.subtitlesTextColor] = value.toArgb().toLong() }
-					default { Color(UserPreferences.subtitlesTextColor.defaultValue) }
-				}
-			}
-
-			colorList {
-				setTitle(R.string.lbl_subtitle_background_color)
-				entries = mapOf(
-					Color(0x00FFFFFFL) to context.getString(R.string.lbl_none),
-					Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
-					Color(0XFF000000L) to context.getString(R.string.color_black),
-					Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
-					Color(0xFFC80000L) to context.getString(R.string.color_red),
-					Color(0xFF00C800L) to context.getString(R.string.color_green),
-					Color(0xFF0000C8L) to context.getString(R.string.color_blue),
-					Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
-					Color(0xFFD60080L) to context.getString(R.string.color_pink),
-					Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
-				)
-
-				// Keep the alpha of the saved color as we're using a separate option to change alpha
-				bind {
-					get {
-						Color(userPreferences[UserPreferences.subtitlesBackgroundColor])
-							.let { it.copy(alpha = if (it.alpha == 0f) 0f else 1f) }
-					}
-					set { value ->
-						userPreferences[UserPreferences.subtitlesBackgroundColor] = value
-							.let {
-								val currentAlpha = Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha
-									.takeIf { alpha -> alpha != 0f }
-									?: 1f
-								it.copy(alpha = if (it.alpha == 0f) 0f else currentAlpha)
-							}
-							.toArgb()
-							.toLong()
-					}
-					default { Color(UserPreferences.subtitlesBackgroundColor.defaultValue) }
-				}
-			}
-
-			@Suppress("MagicNumber")
-			seekbar {
-				setTitle(R.string.pref_subtitles_background_opacity)
-				min = 20
-				max = 100
-				increment = 10
-				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
-					override fun display(value: Int): String = "$value%"
-				}
-
-				// Only set the alpha on the existing color, which is changed with the option above
-				bind {
-					get { (Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha * 100f).roundToInt() }
-					set { value ->
-						userPreferences[UserPreferences.subtitlesBackgroundColor] =
-							Color(userPreferences[UserPreferences.subtitlesBackgroundColor])
-								.copy(alpha = value / 100f)
-								.toArgb()
-								.toLong()
-					}
-					default { (Color(UserPreferences.subtitlesBackgroundColor.defaultValue).alpha * 100f).roundToInt() }
-				}
-
-				depends {
-					Color(userPreferences[UserPreferences.subtitlesBackgroundColor]).alpha > 0f
-				}
-			}
-
-
-
-			checkbox {
-				setTitle(R.string.pref_subtitles_bold)
-				bind {
-					val boldWeight = 700
-					val normalWeight = 400
-					get { userPreferences[UserPreferences.subtitlesTextWeightValue] == boldWeight }
-					set { checked -> userPreferences[UserPreferences.subtitlesTextWeightValue] = if (checked) boldWeight else normalWeight }
-					default { false }
-				}
-			}
-
-			enum<SubtitleLanguage> {
-				setTitle(R.string.pref_subtitle_default_language)
-
-				// Add all enum values with their display names
-				SubtitleLanguage.values().forEach { language ->
-					entry(language.name, language.displayName)
-				}
-
-				bind(userPreferences, UserPreferences.defaultSubtitleLanguage)
-
-
-			}
-
-			colorList {
-				setTitle(R.string.lbl_subtitle_text_stroke_color)
-				entries = mapOf(
-					Color(0x00FFFFFFL) to context.getString(R.string.lbl_none),
-					Color(0xFFFFFFFFL) to context.getString(R.string.color_white),
-					Color(0XFF000000L) to context.getString(R.string.color_black),
-					Color(0xFF7F7F7FL) to context.getString(R.string.color_darkgrey),
-					Color(0xFFC80000L) to context.getString(R.string.color_red),
-					Color(0xFF00C800L) to context.getString(R.string.color_green),
-					Color(0xFF0000C8L) to context.getString(R.string.color_blue),
-					Color(0xFFEEDC00L) to context.getString(R.string.color_yellow),
-					Color(0xFFD60080L) to context.getString(R.string.color_pink),
-					Color(0xFF009FDAL) to context.getString(R.string.color_cyan),
-				)
-
-				bind {
-					get { Color(userPreferences[UserPreferences.subtitleTextStrokeColor]) }
-					set { value -> userPreferences[UserPreferences.subtitleTextStrokeColor] = value.toArgb().toLong() }
-					default { Color(UserPreferences.subtitleTextStrokeColor.defaultValue) }
-				}
-			}
-
-			@Suppress("MagicNumber")
-			// Stored in floats (1f = 100%) but seekbar preference works with integers only
-			seekbar {
-				setTitle(R.string.pref_subtitles_size)
-				min = 25 // 0.25f
-				max = 250 // 2.5f
-				increment = 25 // 0.25f
-				valueFormatter = object : DurationSeekBarPreference.ValueFormatter() {
-					override fun display(value: Int): String = "$value%"
-				}
-
-				bind {
-					get { (userPreferences[UserPreferences.subtitlesTextSize] * 100f).roundToInt() }
-					set { value -> userPreferences[UserPreferences.subtitlesTextSize] = value / 100f }
-					default { (UserPreferences.subtitlesTextSize.defaultValue * 100f).roundToInt() }
-				}
-			}
-		}
-
-		category {
-			setTitle(R.string.pref_mediasegment_actions)
-
-			for (segmentType in MediaSegmentRepository.SupportedTypes) {
-				enum<MediaSegmentAction> {
-					when (segmentType) {
-						MediaSegmentType.UNKNOWN -> R.string.segment_type_unknown
-						MediaSegmentType.COMMERCIAL -> R.string.segment_type_commercial
-						MediaSegmentType.PREVIEW -> R.string.segment_type_preview
-						MediaSegmentType.RECAP -> R.string.segment_type_recap
-						MediaSegmentType.OUTRO -> R.string.segment_type_outro
-						MediaSegmentType.INTRO -> R.string.segment_type_intro
-					}.let(::setTitle)
-
-					bind {
-						get { mediaSegmentRepository.getDefaultSegmentTypeAction(segmentType) }
-						set { value -> mediaSegmentRepository.setDefaultSegmentTypeAction(segmentType, value) }
-						default { MediaSegmentAction.NOTHING }
-					}
-				}
-			}
-
-			enum<SkipDuration> {
-				setTitle(R.string.pref_skip_duration)
-				bind(userPreferences, UserPreferences.skipDuration)
-			}
-		}
-
-		category {
-			setTitle(R.string.advanced_settings)
 
 			link {
-				setTitle(R.string.pref_playback_advanced)
-				icon = R.drawable.ic_more
-				withFragment<PlaybackAdvancedPreferencesScreen>()
+				setTitle(R.string.pref_premiumize_api_key)
+				setContent(R.string.pref_premiumize_api_key_description)
+				icon = R.drawable.ic_settings
+				withFragment<PremiumizeApiKeyPreferencesScreen>()
+			}
+
+			checkbox {
+				setTitle(R.string.pref_enable_aiostreams)
+				setContent(R.string.pref_enable_aiostreams_description)
+				bind(userPreferences, UserPreferences.aiostreamsEnabled)
+			}
+
+			link {
+				setTitle(R.string.pref_aiostreams_config)
+				setContent(R.string.pref_aiostreams_config_description)
+				icon = R.drawable.ic_settings
+				withFragment<AioStreamsConfigPreferencesScreen>()
+			}
+
+			enum<StreamSortBy> {
+				setTitle(R.string.pref_stream_sort)
+				bind(userPreferences, UserPreferences.streamSortBy)
+			}
+
+			category {
+				setTitle(R.string.pref_stream_filters)
+
+				enum<StreamMinSizeMovies> {
+					setTitle(R.string.pref_stream_min_size_movies)
+					bind(userPreferences, UserPreferences.streamMinSizeMovies)
+				}
+
+				enum<StreamMaxSizeMovies> {
+					setTitle(R.string.pref_stream_max_size_movies)
+					bind(userPreferences, UserPreferences.streamMaxSizeMovies)
+				}
+
+				enum<StreamMinSizeEpisodes> {
+					setTitle(R.string.pref_stream_min_size_episodes)
+					bind(userPreferences, UserPreferences.streamMinSizeEpisodes)
+				}
+
+				enum<StreamMaxSizeEpisodes> {
+					setTitle(R.string.pref_stream_max_size_episodes)
+					bind(userPreferences, UserPreferences.streamMaxSizeEpisodes)
+				}
 			}
 		}
 	}

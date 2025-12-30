@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import org.jellyfin.androidtv.data.service.BackgroundService
+import org.jellyfin.androidtv.preference.UserPreferences
 import org.jellyfin.androidtv.ui.browsing.BrowseGridFragment
 import org.koin.java.KoinJavaComponent
 import timber.log.Timber
@@ -66,6 +67,12 @@ interface NavigationRepository {
 	 * Reset navigation to the initial destination or a specific [Destination.Fragment] without clearing history.
 	 */
 	fun reset(destination: Destination.Fragment? = null) = reset(destination, false)
+
+	/**
+	 * Increment the counter for back navigation skips. Used when launching external intents.
+	 * Each call increments the counter, and back presses will be ignored until the counter reaches 0.
+	 */
+	fun incrementSkipBackNavigation()
 	
 	/**
 	 * Check if the backdrop should be cleared for the given destination.
@@ -75,11 +82,16 @@ interface NavigationRepository {
 
 class NavigationRepositoryImpl(
 	private val defaultDestination: Destination.Fragment,
+	private val userPreferences: UserPreferences,
 ) : NavigationRepository {
 	private val fragmentHistory = Stack<Destination.Fragment>()
 
 	private val _currentAction = MutableSharedFlow<NavigationAction>(1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 	override val currentAction = _currentAction.asSharedFlow()
+
+	private var skipBackNavigationCount = 0
+	private var lastBackNavigationTime = 0L
+	private var fragmentLoadCooldownEndTime = 0L
 
 	override fun shouldClearBackdrop(destination: Destination): Boolean {
 		return when (destination) {
@@ -106,8 +118,7 @@ class NavigationRepositoryImpl(
 	}
 
 	override fun navigate(destination: Destination, replace: Boolean) {
-		Timber.d("Navigating to $destination (via navigate function)")
-		
+
 		// Clear backdrop if needed
 		clearBackdropIfNeeded(destination)
 
@@ -115,8 +126,15 @@ class NavigationRepositoryImpl(
 			is Destination.Fragment -> NavigationAction.navigateFragment(destination, true, replace, false)
 		}
 		if (destination is Destination.Fragment) {
-			if (replace && fragmentHistory.isNotEmpty()) fragmentHistory[fragmentHistory.lastIndex] = destination
-			else fragmentHistory.push(destination)
+			// Set cooldown for back button after fragment navigation
+			val cooldownMs = userPreferences[UserPreferences.backButtonCooldownMs].toLong()
+			fragmentLoadCooldownEndTime = System.currentTimeMillis() + cooldownMs
+
+			if (replace && fragmentHistory.isNotEmpty()) {
+				fragmentHistory[fragmentHistory.lastIndex] = destination
+			} else {
+				fragmentHistory.push(destination)
+			}
 		}
 		_currentAction.tryEmit(action)
 	}
@@ -124,11 +142,38 @@ class NavigationRepositoryImpl(
 	override val canGoBack: Boolean get() = fragmentHistory.isNotEmpty()
 
 	override fun goBack(): Boolean {
-		if (fragmentHistory.empty()) return false
 
-		Timber.d("Navigating back")
+		// If we have pending skips (e.g., returning from external intents),
+		// decrement counter and emit action without modifying history
+		if (skipBackNavigationCount > 0) {
+			skipBackNavigationCount--
+			_currentAction.tryEmit(NavigationAction.GoBack)
+			return true
+		}
+
+		if (fragmentHistory.empty()) {
+			return false
+		}
+
+		// Rate limit back navigation to prevent rapid presses that cause focus issues
+		val currentTime = System.currentTimeMillis()
+		val cooldownMs = userPreferences[UserPreferences.backButtonCooldownMs].toLong()
+
+		// Check if back button is disabled due to recent fragment navigation
+		if (currentTime < fragmentLoadCooldownEndTime) {
+			Timber.d("Back navigation disabled - fragment load cooldown active")
+			return false
+		}
+
+		// Check for rapid presses between back button events
+		if (currentTime - lastBackNavigationTime < cooldownMs) {
+			Timber.d("Back navigation rate limited - too soon after previous navigation")
+			return false
+		}
+		lastBackNavigationTime = currentTime
+
 		val currentFragment = fragmentHistory.pop()
-		
+
 		// Check if we're navigating back to the horizontal grid browse
 		if (fragmentHistory.isNotEmpty()) {
 			val previousFragment = fragmentHistory.peek()
@@ -145,12 +190,16 @@ class NavigationRepositoryImpl(
 	override fun reset(destination: Destination.Fragment?, clearHistory: Boolean) {
 		fragmentHistory.clear()
 		val actualDestination = destination ?: defaultDestination
-		
+
 		// Clear backdrop if needed
 		clearBackdropIfNeeded(actualDestination)
-		
+
 		_currentAction.tryEmit(NavigationAction.navigateFragment(actualDestination, true, false, clearHistory))
-		Timber.d("Navigating to $actualDestination (via reset, clearHistory=$clearHistory)")
+	}
+
+	override fun incrementSkipBackNavigation() {
+		skipBackNavigationCount++
+		Timber.d("[BACK_NAV] NavigationRepository.incrementSkipBackNavigation: count now $skipBackNavigationCount")
 	}
 }
 

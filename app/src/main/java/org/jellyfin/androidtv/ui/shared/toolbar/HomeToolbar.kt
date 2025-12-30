@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -76,7 +77,6 @@ import org.jellyfin.androidtv.ui.base.Text
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun HomeToolbar(
-    openSearch: () -> Unit,
     openLiveTv: () -> Unit,
     openSettings: () -> Unit,
     switchUsers: () -> Unit,
@@ -123,7 +123,7 @@ fun HomeToolbar(
 
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(256.dp)
                     .clip(CircleShape)
                     .background(
                         if (isFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent,
@@ -134,175 +134,52 @@ fun HomeToolbar(
                 IconButton(
                     onClick = switchUsers,
                     interactionSource = interactionSource,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(256.dp) // 36 * 3
                 ) {
-                    if (userImageUrl != null) {
-                        AndroidView(
-                            factory = { ctx ->
-                                AsyncImageView(ctx).apply {
-                                    layoutParams = FrameLayout.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        Gravity.CENTER
-                                    )
-                                    scaleType = ImageView.ScaleType.CENTER_CROP
-                                    circleCrop = true
-                                    adjustViewBounds = true
-                                    setPadding(0, 0, 0, 0)
-                                    load(url = userImageUrl)
-                                }
-                            },
-                            modifier = Modifier.size(26.dp)
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = stringResource(R.string.lbl_switch_user),
-                            modifier = Modifier.size(17.dp),
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-
-
-            // Search Button
-            val searchInteractionSource = remember { MutableInteractionSource() }
-            val isSearchFocused by searchInteractionSource.collectIsFocusedAsState()
-
-            Box(
-                modifier = Modifier
-                    .let { modifier ->
-                        if (isSearchFocused) {
-                            modifier
-                                .width(100.dp)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(20.dp))
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // User Image/Icon
+                        if (userImageUrl != null) {
+                            AndroidView(
+                                factory = { ctx ->
+                                    AsyncImageView(ctx).apply {
+                                        layoutParams = FrameLayout.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            Gravity.CENTER
+                                        )
+                                        scaleType = ImageView.ScaleType.CENTER_CROP
+                                        circleCrop = true
+                                        adjustViewBounds = true
+                                        setPadding(0, 0, 0, 0)
+                                        load(url = userImageUrl)
+                                    }
+                                },
+                                modifier = Modifier.size(48.dp)
+                            )
                         } else {
-                            modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_user),
+                                contentDescription = stringResource(R.string.lbl_switch_user),
+                                modifier = Modifier.size(32.dp),
+                                tint = Color.White
+                            )
                         }
-                    }
-                    .background(
-                        if (isSearchFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    modifier = Modifier
-                        .let { modifier ->
-                            if (isSearchFocused) {
-                                modifier
-                                    .width(100.dp)
-                                    .padding(horizontal = 12.dp)
-                            } else {
-                                modifier
-                                    .size(32.dp)
-                            }
+
+                        // User Name
+                        currentUser?.name?.let { userName ->
+                            Text(
+                                text = userName,
+                                color = if (isFocused) Color.Black else Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
                         }
-                        .clickable(
-                            onClick = openSearch,
-                            interactionSource = searchInteractionSource,
-                            indication = null
-                        ),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_search),
-                        contentDescription = stringResource(R.string.lbl_search),
-                        tint = if (isSearchFocused) Color.Black else Color.White,
-                        modifier = Modifier
-                            .let { modifier ->
-                                if (isSearchFocused) {
-                                    modifier.size(16.dp)
-                                } else {
-                                    modifier.size(19.dp)
-                                }
-                            }
-                    )
-
-
-                    if (isSearchFocused) {
-                        Text(
-                            text = "Search",
-                            color = if (isSearchFocused) Color.Black else Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                        )
-                    }
-                }
-            }
-
-
-            // Library Button
-            val libraryInteractionSource = remember { MutableInteractionSource() }
-            val isLibraryFocused by libraryInteractionSource.collectIsFocusedAsState()
-
-            Box(
-                modifier = Modifier
-                    .let { modifier ->
-                        if (isLibraryFocused) {
-                            modifier
-                                .width(100.dp)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(12.5.dp))
-                        } else {
-                            modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                        }
-                    }
-                    .background(
-                        if (isLibraryFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    modifier = Modifier
-                        .let { modifier ->
-                            if (isLibraryFocused) {
-                                modifier
-                                    .width(100.dp)
-                                    .padding(horizontal = 12.dp)
-                            } else {
-                                modifier
-                                    .size(32.dp)
-                            }
-                        }
-                        .clickable(
-                            onClick = openLibrary,
-                            interactionSource = libraryInteractionSource,
-                            indication = null
-                        ),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_loop),
-                        contentDescription = stringResource(R.string.lbl_library),
-                        tint = if (isLibraryFocused) Color.Black else Color.White,
-                        modifier = Modifier
-                            .let { modifier ->
-                                if (isLibraryFocused) {
-                                    modifier.size(16.dp)
-                                } else {
-                                    modifier.size(19.dp)
-                                }
-                            }
-                    )
-
-
-                    if (isLibraryFocused) {
-                        Text(
-                            text = "Home",
-                            color = if (isLibraryFocused) Color.Black else Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                        )
                     }
                 }
             }
@@ -371,128 +248,6 @@ fun HomeToolbar(
                             Text(
                                 text = "Live",
                                 color = if (isLiveTvFocused) Color.Black else Color.White,
-                                fontSize = 14.sp,
-                                modifier = Modifier
-                                    .padding(start = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Random Movie Button - Only show if enabled in preferences
-            if (showMasksButton) {
-                val masksInteractionSource = remember { MutableInteractionSource() }
-                val isMasksFocused by masksInteractionSource.collectIsFocusedAsState()
-                val context = LocalContext.current
-                val api = koinInject<ApiClient>()
-                val userViewsRepository = koinInject<UserViewsRepository>()
-                val coroutineScope = rememberCoroutineScope()
-
-                fun showError(message: String) {
-                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                }
-
-                fun getRandomMovie() {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        try {
-                            // Get all user views
-                            val views = userViewsRepository.views.first()
-
-                            // Find the movies library
-                            val moviesLibrary = views.find {
-                                it.collectionType == CollectionType.MOVIES ||
-                                        it.name?.equals("Movies", ignoreCase = true) == true
-                            }
-
-                            if (moviesLibrary == null) {
-                                showError("No Movies library found")
-                                return@launch
-                            }
-
-                            // Get a random movie from the library
-                            val result = api.itemsApi.getItems(
-                                parentId = moviesLibrary.id,
-                                includeItemTypes = listOf(BaseItemKind.MOVIE),
-                                recursive = true,
-                                sortBy = listOf(ItemSortBy.RANDOM),
-                                limit = 1
-                            )
-
-                            // The API returns a BaseItemDtoQueryResult which has an items property
-                            val movie = result.content.items?.firstOrNull()
-                            if (movie != null) {
-                                withContext(Dispatchers.Main) {
-                                    openRandomMovie(movie)
-                                }
-                            } else {
-                                showError("No movies found in the library")
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error getting random movie")
-                            showError("Error: ${e.message ?: "Unknown error"}")
-                        }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .let { modifier ->
-                            if (isMasksFocused) {
-                                modifier
-                                    .width(100.dp)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(12.5.dp))
-                            } else {
-                                modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                            }
-                        }
-                        .background(
-                            if (isMasksFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .let { modifier ->
-                                if (isMasksFocused) {
-                                    modifier
-                                        .width(100.dp)
-                                        .padding(horizontal = 12.dp)
-                                } else {
-                                    modifier
-                                        .size(32.dp)
-                                }
-                            }
-                            .clickable(
-                                onClick = { getRandomMovie() },
-                                interactionSource = masksInteractionSource,
-                                indication = null
-                            ),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_dice),
-                            contentDescription = stringResource(R.string.show_random_button_summary),
-                            tint = if (isMasksFocused) Color.Black else Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .let { modifier ->
-                                    if (isMasksFocused) {
-                                        modifier.size(16.dp)
-                                    } else {
-                                        modifier.size(19.dp)
-                                    }
-                                }
-                        )
-
-                        // Show text when focused
-                        if (isMasksFocused) {
-                            Text(
-                                text = "Random",
-                                color = if (isMasksFocused) Color.Black else Color.White,
                                 fontSize = 14.sp,
                                 modifier = Modifier
                                     .padding(start = 4.dp)
@@ -572,74 +327,6 @@ fun HomeToolbar(
                 }
             }
 
-            // Favorites Button
-            val favoritesInteractionSource = remember { MutableInteractionSource() }
-            val isFavoritesFocused by favoritesInteractionSource.collectIsFocusedAsState()
-
-            Box(
-                modifier = Modifier
-                    .let { modifier ->
-                        if (isFavoritesFocused) {
-                            modifier
-                                .width(110.dp)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(12.5.dp))
-                        } else {
-                            modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                        }
-                    }
-                    .background(
-                        if (isFavoritesFocused) Color.White.copy(alpha = 0.85f) else Color.Transparent
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    modifier = Modifier
-                        .let { modifier ->
-                            if (isFavoritesFocused) {
-                                modifier
-                                    .width(114.dp)
-                                    .padding(horizontal = 13.dp)
-                            } else {
-                                modifier
-                                    .size(32.dp)
-                            }
-                        }
-                        .clickable(
-                            onClick = onFavoritesClick,
-                            interactionSource = favoritesInteractionSource,
-                            indication = null
-                        ),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_heart),
-                        contentDescription = stringResource(R.string.lbl_favorites),
-                        tint = if (isFavoritesFocused) Color.Red else Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .let { modifier ->
-                                if (isFavoritesFocused) {
-                                    modifier.size(16.dp)
-                                } else {
-                                    modifier.size(22.dp)
-                                }
-                            }
-                    )
-
-                    if (isFavoritesFocused) {
-                        Text(
-                            text = "Favorites",
-                            color = if (isFavoritesFocused) Color.Black else Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 }

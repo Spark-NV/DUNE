@@ -3,6 +3,7 @@ package org.jellyfin.androidtv.ui.home
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.ViewGroup
@@ -27,8 +28,8 @@ import org.koin.java.KoinJavaComponent
  */
 class ButtonViewPresenter : Presenter() {
     class ExtraSmallTextView(context: Context) : AppCompatTextView(context) {
-        private var focusedBackground: GradientDrawable? = null
-        private var unfocusedBackground: GradientDrawable? = null
+        private var focusedBackground: Drawable? = null
+        private var unfocusedBackground: Drawable? = null
         private var textColor: Int = Color.WHITE
         private var focusedTextColor: Int = Color.WHITE
 
@@ -43,19 +44,30 @@ class ButtonViewPresenter : Presenter() {
                 )
             )
 
-            // Create focused background with theme color
-            focusedBackground = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16f
-                setColor(attrs.getColor(1, Color.argb(179, 48, 48, 48))) // Default to 70% opacity grey if not set
+            // Create focused background - try drawable first, fallback to color
+            val focusedBgDrawable = attrs.getDrawable(1)
+            focusedBackground = if (focusedBgDrawable != null) {
+                focusedBgDrawable
+            } else {
+                // Fallback to color if drawable not found
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 16f
+                    setColor(attrs.getColor(1, Color.argb(179, 48, 48, 48))) // Default to 70% opacity grey if not set
+                }
             }
 
-
-            // Create unfocused background with theme color
-            unfocusedBackground = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16f
-                setColor(attrs.getColor(0, Color.TRANSPARENT)) // Default to transparent if not set
+            // Create unfocused background - try drawable first, fallback to color
+            val unfocusedBgDrawable = attrs.getDrawable(0)
+            unfocusedBackground = if (unfocusedBgDrawable != null) {
+                unfocusedBgDrawable
+            } else {
+                // Fallback to color if drawable not found
+                GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 16f
+                    setColor(attrs.getColor(0, Color.TRANSPARENT)) // Default to transparent if not set
+                }
             }
 
             // Set text colors from theme

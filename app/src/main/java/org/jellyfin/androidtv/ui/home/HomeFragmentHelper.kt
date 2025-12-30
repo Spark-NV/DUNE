@@ -185,6 +185,23 @@ class HomeFragmentHelper(
         return HomeFragmentBrowseRowDefRow(BrowseRowDef(context.getString(R.string.lbl_on_now), query))
     }
 
+    fun loadRecentlyReleasedMovies(): HomeFragmentRow {
+        val currentUserId = userRepository.currentUser.value?.id
+        val query = GetItemsRequest(
+            userId = currentUserId,
+            includeItemTypes = setOf(BaseItemKind.MOVIE),
+            sortBy = setOf(ItemSortBy.PREMIERE_DATE),
+            sortOrder = setOf(SortOrder.DESCENDING),
+            limit = ITEM_LIMIT,
+            fields = ItemRepository.itemFields,
+            enableImages = true,
+            imageTypeLimit = 1,
+            recursive = true
+        )
+
+        return HomeFragmentBrowseRowDefRow(BrowseRowDef(context.getString(R.string.home_section_recently_released_movies), query, 50))
+    }
+
     private fun loadResume(title: String, includeMediaTypes: Collection<MediaType>): HomeFragmentRow {
         val query = GetResumeItemsRequest(
             limit = ITEM_LIMIT_RESUME,

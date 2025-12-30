@@ -31,33 +31,38 @@ class EnhancedTweaksPreferencesScreen : OptionsFragment() {
                 withFragment<BackdropSettingsPreferencesScreen>()
             }
 
-            enum<AppTheme> {
+            // App theme removed
+            /*enum<AppTheme> {
                 setTitle(R.string.pref_app_theme)
 				bind(userPreferences, UserPreferences.appTheme)
-            }
+            }*/
 
-            checkbox {
+            // Live TV button removed
+            /*checkbox {
                 setTitle(R.string.show_live_tv_button)
                 setContent(R.string.show_live_tv_button_summary)
                 bind(userSettingPreferences, userSettingPreferences.showLiveTvButton)
-            }
+            }*/
 
-            checkbox {
+            // Random movie button removed
+            /*checkbox {
                 setTitle(R.string.show_random_button)
                 setContent(R.string.show_random_button_summary)
                 bind(userSettingPreferences, userSettingPreferences.showRandomButton)
-            }
+            }*/
 
-            checkbox {
+            // Classic home screen removed
+            /*checkbox {
                 setTitle(R.string.use_classic_home_screen)
                 setContent(R.string.use_classic_home_screen_summary)
                 bind(userSettingPreferences, userSettingPreferences.useClassicHomeScreen)
-            }
+            }*/
 
-            enum<CarouselSortBy> {
+            // Carousel sort options removed
+            /*enum<CarouselSortBy> {
                 setTitle(R.string.pref_carousel_sort_by)
                 bind(userPreferences, UserPreferences.carouselSortBy)
-            }
+            }*/
 
             checkbox {
                 setTitle(R.string.pref_snowfall_enabled)
@@ -65,11 +70,12 @@ class EnhancedTweaksPreferencesScreen : OptionsFragment() {
                 bind(userPreferences, UserPreferences.snowfallEnabled)
             }
 
-            checkbox {
+            // Include series in carousel removed
+            /*checkbox {
                 setTitle(R.string.pref_carousel_include_series)
                 setContent(R.string.pref_carousel_include_series_description)
                 bind(userPreferences, UserPreferences.carouselIncludeSeries)
-            }
+            }*/
 
             checkbox {
                 setTitle(R.string.lbl_use_series_thumbnails)
@@ -78,8 +84,9 @@ class EnhancedTweaksPreferencesScreen : OptionsFragment() {
 			}
 		}
 
-			category {
-				setTitle(R.string.android_channels)
+		// Android TV channels section removed
+		/*category {
+			setTitle(R.string.android_channels)
 			checkbox {
 				setTitle(R.string.lbl_use_launcher_thumbnails)
 				setContent(R.string.lbl_use_launcher_thumbnails_description)
@@ -91,7 +98,7 @@ class EnhancedTweaksPreferencesScreen : OptionsFragment() {
 				setContent(R.string.lbl_enable_launcher_channels_description)
 				bind(userPreferences, UserPreferences.launcherChannelsEnabled)
 			}
-		}
+		}*/
 
         category {
             setTitle(R.string.genre_rows)
@@ -100,6 +107,13 @@ class EnhancedTweaksPreferencesScreen : OptionsFragment() {
 			enum<GenreSortBy> {
 				setTitle(R.string.pref_genre_sort_by)
 				bind(userPreferences, UserPreferences.genreSortBy)
+			}
+
+			// Enable/disable collection button
+			checkbox {
+				setTitle(R.string.lbl_hide_collections)
+				setContent(R.string.desc_hide_collections)
+				bind(userSettingPreferences, userSettingPreferences.hideCollectionsFromHome)
 			}
 
 			// Music Videos

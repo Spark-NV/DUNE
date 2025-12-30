@@ -144,9 +144,7 @@ fun FeaturedCarousel(
 	items: List<CarouselItem>,
 	onItemSelected: (CarouselItem) -> Unit,
 	modifier: Modifier = Modifier,
-	isPaused: Boolean = false,
-	activeIndex: Int = 0,
-	onActiveIndexChanged: (Int) -> Unit = {}
+	isPaused: Boolean = false
 ) {
 	if (items.isEmpty()) {
 		timber.log.Timber.d("FeaturedCarousel: Showing no items message")
@@ -189,22 +187,15 @@ fun FeaturedCarousel(
 
 	var isCarouselFocused by remember { mutableStateOf(false) }
 	val borderAlpha = if (isCarouselFocused) 1f else 0.1f
-	var actualCarouselIndex by remember { mutableIntStateOf(activeIndex) }
+	var actualCarouselIndex by remember { mutableIntStateOf(0) }
 	val carouselState = remember { CarouselState() }
 
-	var currentIndex by remember { mutableIntStateOf(activeIndex) }
+	var currentIndex by remember { mutableIntStateOf(0) }
 	val context = LocalContext.current
 	var isManualNavigation by remember { mutableStateOf(false) } // Flag to prevent auto-scroll during manual navigation
 	var lastManualNavigationTime by remember { mutableLongStateOf(0L) } // Track last manual navigation time
 	val isAndroid12OrLower = remember { Build.VERSION.SDK_INT <= Build.VERSION_CODES.S }
 	var autoScrollEnabled by remember { mutableStateOf(true) }
-
-	LaunchedEffect(activeIndex) {
-		if (activeIndex != currentIndex) {
-			currentIndex = activeIndex
-			actualCarouselIndex = activeIndex
-		}
-	}
 
 	LaunchedEffect(isPaused, autoScrollEnabled, isCarouselFocused) {
 		if (items.size > 1 && autoScrollEnabled && !isCarouselFocused && !isPaused) {
@@ -212,10 +203,7 @@ fun FeaturedCarousel(
 				kotlinx.coroutines.delay(8000L) // 8 seconds delay
 
 				if (autoScrollEnabled && !isCarouselFocused && !isPaused) {
-					val newIndex = (currentIndex + 1) % items.size
-					currentIndex = newIndex
-					actualCarouselIndex = newIndex
-					onActiveIndexChanged(newIndex)
+					currentIndex = (currentIndex + 1) % items.size
 
 					if (isAndroid12OrLower) {
 					}
@@ -242,8 +230,6 @@ fun FeaturedCarousel(
 		onItemSelected = onItemSelected,
 		onNavigate = { newIndex ->
 			currentIndex = newIndex
-			actualCarouselIndex = newIndex
-			onActiveIndexChanged(newIndex)
 		},
 		onManualNavigation = { isManual ->
 			isManualNavigation = isManual
@@ -413,17 +399,16 @@ private fun CarouselItemForeground(
 			) {
 				Text(
 					text = item.title,
-					style = MaterialTheme.typography.labelLarge.copy(
+					style = MaterialTheme.typography.headlineLarge.copy(
 						fontSize = 28.sp,
 						fontWeight = FontWeight.Bold,
-						lineHeight = 32.sp,
 						shadow = Shadow(
 							color = Color.Black.copy(alpha = 0.7f),
 							offset = Offset(x = 2f, y = 4f),
 							blurRadius = 4f
 						)
 					),
-					maxLines = 2,
+					maxLines = 1,
 					overflow = TextOverflow.Ellipsis,
 					color = Color.White,
 					modifier = Modifier.fillMaxWidth(0.465f)
