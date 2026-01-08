@@ -9,8 +9,7 @@ import java.util.UUID
 
 class OptionsItemInfo(
 	private val context: Context
-) : OptionsItem {
-	var title: String? = null
+) : OptionsItemMutable<Unit>() {
 	var content: String? = null
 	private var contentProvider: (() -> String)? = null
 
@@ -33,6 +32,7 @@ class OptionsItemInfo(
 			category.addPreference(it)
 			it.isEnabled = false
 			it.isSelectable = false
+			it.isVisible = dependencyCheckFun() && visible
 			it.title = title
 			val initialContent = contentProvider?.invoke() ?: content ?: ""
 			it.summary = initialContent
@@ -44,6 +44,7 @@ class OptionsItemInfo(
 				val updatedContent = contentProvider?.invoke() ?: content ?: ""
 				Timber.d("[OptionsItemInfo] Updating content: $updatedContent")
 				pref.summary = updatedContent
+				pref.isVisible = dependencyCheckFun() && visible
 			}
 		}
 	}

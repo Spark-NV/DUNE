@@ -284,7 +284,6 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 		if (!justLoaded) {
 			refreshCurrentItem()
-			refreshRows()
 			genreManager.clearEnabledGenresCache()
 		} else {
 			justLoaded = false

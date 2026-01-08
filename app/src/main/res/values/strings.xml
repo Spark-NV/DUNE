@@ -75,6 +75,7 @@
     <string name="available_streams">Available Streams</string>
     <string name="invalid_stream_url">Invalid stream URL</string>
     <string name="error_launching_stream">Error launching stream</string>
+    <string name="resolving_stream">Resolving stream…</string>
     <string name="lbl_pause">Pause</string>
     <string name="lbl_cancel">Cancel</string>
     <string name="lbl_cancel_recording">Cancel recording</string>
@@ -570,6 +571,17 @@
     <string name="pref_stream_sort">Stream Sorting</string>
     <string name="pref_stream_sort_description">Sort streams by size</string>
     <string name="pref_stream_filters">Stream Filters</string>
+    <string name="pref_anime_library_setup">Anime Library Setup</string>
+    <string name="pref_anime_endpoint_enabled">Enable Anime Endpoint</string>
+    <string name="pref_anime_endpoint_enabled_description">Query both anime and series endpoints for content in your anime library</string>
+    <string name="pref_show_set_anime_library_button">Show Set Library Button</string>
+    <string name="pref_show_set_anime_library_button_description">Shows a button on detail screens to set the current item\'s library as your anime library</string>
+    <string name="lbl_set_anime_library">Set Anime Library</string>
+    <string name="msg_anime_library_set">Anime library set to: %s (ID: %s)</string>
+    <string name="pref_set_anime_shows_library">Set anime shows library</string>
+    <string name="pref_select_anime_library">Select Anime Library</string>
+    <string name="pref_select_anime_library_description">Choose which library contains your anime shows</string>
+    <string name="lbl_item_id">ID: %1$s</string>
     <string name="pref_stream_sort_size_descending">Size Descending</string>
     <string name="pref_stream_sort_size_ascending">Size Ascending</string>
     <string name="pref_stream_min_size_movies">Min Size (Movies)</string>
@@ -634,6 +646,8 @@
     <string name="pref_stream_max_size_episodes_10gb">10 GB</string>
     <string name="pref_stream_max_size_episodes_12gb">12 GB</string>
     <string name="pref_stream_max_size_episodes_15gb">15 GB</string>
+    <string name="pref_stream_remove_duplicates">Remove Duplicates</string>
+    <string name="pref_stream_remove_duplicates_description">Remove duplicate streams across providers (based on filename)</string>
     <string name="pref_premiumize_api_key">Premiumize API Key</string>
     <string name="pref_premiumize_api_key_description">API key for Premiumize (required for Torrentio)</string>
     <string name="pref_aiostreams_config">AIOStreams Config</string>

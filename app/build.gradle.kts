@@ -86,7 +86,7 @@ android {
 			applicationId = "Dune.lumina.tv"
 
 			// Set specific version name for enhanced variant
-			versionName = "0.1.1"
+			versionName = "0.1.2"
 
 			// Set app name for the enhanced version
 			resValue("string", "app_name_release", "DUNE")

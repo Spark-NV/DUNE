@@ -162,7 +162,8 @@ public class ItemListFragment extends Fragment implements View.OnKeyListener {
         mItemList.setRowClickedListener(new ItemRowView.RowClickedListener() {
             @Override
             public void onRowClicked(ItemRowView row) {
-                showMenu(row, row.getItem().getType() != BaseItemKind.AUDIO);
+                // Directly launch the item using "open" logic instead of showing a menu
+                itemLauncher.getValue().launch(new BaseItemDtoBaseRowItem(row.getItem()), null, requireContext());
             }
         });
 
@@ -445,6 +446,21 @@ public class ItemListFragment extends Fragment implements View.OnKeyListener {
                     setLoading(false);
                 }
 
+                // For playlists, set focus to the first item since we removed all the buttons
+                if (mBaseItem.getType() == BaseItemKind.PLAYLIST) {
+                    // Post to ensure the view is fully laid out before requesting focus
+                    mItemList.post(() -> {
+                        // Find the LinearLayout containing the ItemRowViews
+                        LinearLayout songList = mItemList.findViewById(R.id.songList);
+                        if (songList != null && songList.getChildCount() > 0) {
+                            View firstChild = songList.getChildAt(0);
+                            if (firstChild instanceof ItemRowView) {
+                                firstChild.requestFocus();
+                            }
+                        }
+                    });
+                }
+
                 if (mediaManager.getValue().isPlayingAudio()) {
                     mAudioEventListener.onPlaybackStateChange(PlaybackController.PlaybackState.PLAYING, mediaManager.getValue().getCurrentAudioItem());
                 }
@@ -521,6 +537,11 @@ public class ItemListFragment extends Fragment implements View.OnKeyListener {
     private void addButtons(int buttonSize) {
         initializeSortOptions();
 
+        // Skip adding buttons for playlists to simplify the interface
+        if (mBaseItem.getType() == BaseItemKind.PLAYLIST) {
+            return;
+        }
+
         if (BaseItemExtensionsKt.canPlay(mBaseItem)) {
             TextUnderButton play = TextUnderButton.create(requireContext(), R.drawable.ic_play, buttonSize, 2,
                 getString(mBaseItem.isFolder() ? R.string.lbl_play_all : R.string.lbl_play), new View.OnClickListener() {
@@ -545,6 +566,11 @@ public class ItemListFragment extends Fragment implements View.OnKeyListener {
     private void addSecondaryButtons(int buttonSize, TextUnderButton play) {
         boolean hidePlayButton = false;
         TextUnderButton queueButton = null;
+
+        // Skip adding secondary buttons for playlists to simplify the interface
+        if (mBaseItem.getType() == BaseItemKind.PLAYLIST) {
+            return;
+        }
 
         if (mBaseItem.getType() == BaseItemKind.MUSIC_ALBUM && mediaManager.getValue().hasAudioQueueItems()) {
             queueButton = TextUnderButton.create(requireContext(), R.drawable.ic_add, buttonSize, 2,

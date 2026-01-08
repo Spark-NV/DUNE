@@ -46,8 +46,11 @@ class HomeFragmentLatestRow(
 				val title = if (item.name.isNullOrBlank()) {
 					context.getString(R.string.lbl_latest)
 				} else {
-					// Format the string with the library name
-					context.resources.getString(R.string.lbl_latest_in, item.name)
+					// Strip number prefix from library name for display
+					val name = item.name!!
+					val displayName = Regex("^\\d+(.+)").find(name)?.groupValues?.get(1)?.trim() ?: name
+					// Format the string with the cleaned library name
+					context.resources.getString(R.string.lbl_latest_in, displayName)
 				}
 				val row = HomeFragmentBrowseRowDefRow(BrowseRowDef(title, request, arrayOf(ChangeTriggerType.LibraryUpdated)))
 				// Add row to adapter with the no-info card presenter

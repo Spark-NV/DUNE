@@ -25,13 +25,15 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 	 * @param isMovie true for movies, false for TV shows
 	 * @param seasonNumber Season number (only for TV shows)
 	 * @param episodeNumber Episode number (only for TV shows)
+	 * @param isAnime true to use the anime endpoint instead of series (only applies to TV shows)
 	 * @return List of parsed stream data
 	 */
 	suspend fun getStreams(
 		imdbId: String,
 		isMovie: Boolean,
 		seasonNumber: Int = 0,
-		episodeNumber: Int = 0
+		episodeNumber: Int = 0,
+		isAnime: Boolean = false
 	): List<StreamData> = withContext(Dispatchers.IO) {
 		if (imdbId.isEmpty()) {
 			Timber.e("[AIOStreamsAPI] Error: IMDB ID is required")
@@ -49,7 +51,12 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 			return@withContext emptyList()
 		}
 
-		val mediaType = if (isMovie) "movie" else "series"
+		// For movies, always use "movie". For TV shows, use "anime" if isAnime is true, otherwise "series"
+		val mediaType = when {
+			isMovie -> "movie"
+			isAnime -> "anime"
+			else -> "series"
+		}
 		var endpoint = "$BASE_URL/$aioConfig/stream/$mediaType/$imdbId"
 
 		if (!isMovie) {
@@ -58,7 +65,7 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 
 		endpoint += ".json"
 
-		Timber.d("[AIOStreamsAPI] Request URL: $endpoint")
+		Timber.d("[AIOStreamsAPI] Request URL: $endpoint (mediaType: $mediaType, isAnime: $isAnime)")
 
 		try {
 			val url = URL(endpoint)
@@ -136,15 +143,29 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 		val description = stream.description ?: ""
 		val filename = stream.behaviorHints?.filename ?: ""
 		val videoSize = stream.behaviorHints?.videoSize ?: 0
-		val parsedFile = stream.streamData?.parsedFile
+		val bingeGroup = stream.behaviorHints?.bingeGroup ?: ""
 
+		// Parse bingeGroup into tokens for metadata extraction
+		// Format: "com.aiostreams.viren070|premiumize|false|1080p|BluRay|HEVC|DTS-HD MA|HDR10|DV|..."
+		val bingeTokens = bingeGroup.split("|").map { it.trim().lowercase() }
+
+		// Extract quality from name first, then bingeGroup
 		var quality = "unknown"
 		val qualityPattern = Pattern.compile("(\\d+p|4K)", Pattern.CASE_INSENSITIVE)
 		val qualityMatcher = qualityPattern.matcher(name)
 		if (qualityMatcher.find()) {
 			quality = qualityMatcher.group(1).lowercase()
+		} else {
+			// Try bingeGroup tokens
+			for (token in bingeTokens) {
+				if (token.matches(Regex("\\d+p")) || token == "4k") {
+					quality = token
+					break
+				}
+			}
 		}
 
+		// Extract seeds from description
 		var seeds = 0
 		val seedsPattern = Pattern.compile("👤\\s*(\\d+)")
 		val seedsMatcher = seedsPattern.matcher(description)
@@ -152,6 +173,7 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 			seeds = seedsMatcher.group(1).toIntOrNull() ?: 0
 		}
 
+		// Calculate file size
 		var fileSize = "Unknown"
 		if (videoSize > 0) {
 			fileSize = if (videoSize >= 1024 * 1024 * 1024) {
@@ -167,37 +189,37 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 			}
 		}
 
+		// Extract source from description
 		var source = "AIOStreams"
-		val sourcePattern = Pattern.compile("⚙️\\s*(.+)$")
+		val sourcePattern = Pattern.compile("⚙️\\s*(.+)$", Pattern.MULTILINE)
 		val sourceMatcher = sourcePattern.matcher(description)
 		if (sourceMatcher.find()) {
 			source = sourceMatcher.group(1).trim()
 		}
 
+		// Detect HDR formats from bingeGroup, name, and filename
 		val hdrFormats = mutableListOf<String>()
 		val filenameLower = filename.lowercase()
+		val nameLower = name.lowercase()
+		val combinedText = "$nameLower $filenameLower ${bingeTokens.joinToString(" ")}"
 
-		if (parsedFile?.visualTags != null) {
-			for (tag in parsedFile.visualTags) {
-				val tagStr = tag.toString().lowercase()
-				when {
-					"hdr10+" in tagStr || "hdr10plus" in tagStr -> {
-						if ("HDR10+" !in hdrFormats) hdrFormats.add("HDR10+")
-					}
-					"hdr10" in tagStr -> {
-						if ("HDR10" !in hdrFormats) hdrFormats.add("HDR10")
-					}
-					"hdr" in tagStr -> {
-						if ("HDR" !in hdrFormats) hdrFormats.add("HDR")
-					}
-				}
-			}
+		// Check for HDR10+
+		if (combinedText.contains("hdr10+") || combinedText.contains("hdr10plus")) {
+			hdrFormats.add("HDR10+")
 		}
-
-		if (Pattern.compile("\\b(dolby.?vision|dv)\\b", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
+		// Check for Dolby Vision
+		if (combinedText.contains("dolby vision") || combinedText.contains("dolbyvision") ||
+			Regex("\\bdv\\b").containsMatchIn(combinedText) ||
+			bingeTokens.contains("dv")) {
 			if ("Dolby Vision" !in hdrFormats) hdrFormats.add("Dolby Vision")
 		}
-		if (hdrFormats.isEmpty() && Pattern.compile("\\bhdr\\b|\\.hdr\\.", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
+		// Check for HDR10
+		if (bingeTokens.contains("hdr10") || combinedText.contains("hdr10")) {
+			if ("HDR10" !in hdrFormats && "HDR10+" !in hdrFormats) hdrFormats.add("HDR10")
+		}
+		// Check for generic HDR
+		if (hdrFormats.isEmpty() && (bingeTokens.contains("hdr") ||
+			Pattern.compile("\\bhdr\\b|\\.hdr\\.", Pattern.CASE_INSENSITIVE).matcher(combinedText).find())) {
 			hdrFormats.add("HDR")
 		}
 
@@ -205,51 +227,66 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 			hdrFormats.add("SDR")
 		}
 
+		// Extract codec from bingeGroup, then filename
 		var codec = "unknown"
-		if (parsedFile?.encode != null && parsedFile.encode.isNotEmpty()) {
-			codec = parsedFile.encode.lowercase()
+		val codecTokens = listOf("hevc", "x265", "avc", "x264", "av1", "h265", "h264")
+		for (token in bingeTokens) {
+			if (token in codecTokens) {
+				codec = token
+				break
+			}
 		}
-		if (codec == "unknown" || codec.isEmpty()) {
-			val codecPattern = Pattern.compile("(?i)(x264|x265|HEVC|AVC|AV1)")
+		if (codec == "unknown") {
+			val codecPattern = Pattern.compile("(?i)(x264|x265|HEVC|AVC|AV1|H\\.?265|H\\.?264)")
 			val codecMatcher = codecPattern.matcher(filename)
 			if (codecMatcher.find()) {
 				codec = codecMatcher.group(1)
 			}
 		}
 
+		// Extract release quality from bingeGroup, then filename
 		var release = "unknown"
-		if (parsedFile?.quality != null && parsedFile.quality.isNotEmpty() && parsedFile.quality.uppercase() != "UNKNOWN") {
-			release = parsedFile.quality.uppercase()
+		val releaseTokens = mapOf(
+			"bluray" to "BLURAY",
+			"blu-ray" to "BLURAY",
+			"bluray remux" to "REMUX",
+			"remux" to "REMUX",
+			"web-dl" to "WEB-DL",
+			"webdl" to "WEB-DL",
+			"webrip" to "WEBRIP",
+			"hdtv" to "HDTV",
+			"bdrip" to "BDRIP",
+			"dvdrip" to "DVDRIP",
+			"hdrip" to "HDRIP"
+		)
+		for (token in bingeTokens) {
+			if (releaseTokens.containsKey(token)) {
+				release = releaseTokens[token]!!
+				break
+			}
 		}
-		if (release == "unknown" || release.isEmpty()) {
-			val releasePattern = Pattern.compile("(?i)(BluRay|WEB-DL|HDTV|REMUX|WEBRip|BDRip)")
+		if (release == "unknown") {
+			val releasePattern = Pattern.compile("(?i)(BluRay|WEB-DL|HDTV|REMUX|WEBRip|BDRip|DVDRip|HDRip)")
 			val releaseMatcher = releasePattern.matcher(filename)
 			if (releaseMatcher.find()) {
 				release = releaseMatcher.group(1).uppercase()
 			}
 		}
 
-		var isAtmos = false
-		if (parsedFile?.audioTags != null) {
-			for (tag in parsedFile.audioTags) {
-				if ("atmos" in tag.toString().lowercase()) {
-					isAtmos = true
-					break
-				}
-			}
-		}
-		if (!isAtmos) {
-			isAtmos = "atmos" in filenameLower
-		}
+		// Detect Atmos from bingeGroup, name, and filename
+		var isAtmos = bingeTokens.contains("atmos") ||
+			combinedText.contains("atmos")
 
+		// Extract audio channels from filename or description
 		var audioChannels = 2
-		if (parsedFile?.audioChannels != null && parsedFile.audioChannels.isNotEmpty()) {
-			val channelStr = parsedFile.audioChannels[0].toString()
-			val channelPattern = Pattern.compile("(\\d+)\\.(\\d+)")
-			val channelMatcher = channelPattern.matcher(channelStr)
-			if (channelMatcher.find()) {
-				audioChannels = channelMatcher.group(1).toIntOrNull() ?: 2
-			}
+		val channelPattern = Pattern.compile("(\\d+)\\.(\\d+)")
+		val channelMatcher = channelPattern.matcher("$filename $description")
+		if (channelMatcher.find()) {
+			audioChannels = channelMatcher.group(1).toIntOrNull() ?: 2
+		} else {
+			// Check bingeGroup for audio indicators
+			if (bingeTokens.any { it.contains("7.1") }) audioChannels = 7
+			else if (bingeTokens.any { it.contains("5.1") }) audioChannels = 5
 		}
 
 		val streamData = StreamData(
@@ -282,28 +319,15 @@ class AioStreamsApi(private val userPreferences: UserPreferences) {
 		val name: String? = null,
 		val description: String? = null,
 		val url: String? = null,
-		val behaviorHints: AioBehaviorHints? = null,
-		val streamData: AioStreamData? = null
+		val behaviorHints: AioBehaviorHints? = null
 	)
 
 	@Serializable
 	private data class AioBehaviorHints(
 		val filename: String? = null,
-		val videoSize: Long? = null
-	)
-
-	@Serializable
-	private data class AioStreamData(
-		val parsedFile: ParsedFile? = null
-	)
-
-	@Serializable
-	private data class ParsedFile(
-		val visualTags: List<String>? = null,
-		val encode: String? = null,
-		val quality: String? = null,
-		val audioTags: List<String>? = null,
-		val audioChannels: List<String>? = null
+		val videoSize: Long? = null,
+		val bingeGroup: String? = null,
+		val videoHash: String? = null
 	)
 }
 

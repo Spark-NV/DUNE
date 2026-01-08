@@ -3,6 +3,12 @@ package org.jellyfin.androidtv.ui.preference.screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import kotlin.math.roundToInt
+import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import org.jellyfin.androidtv.ui.preference.dsl.subtitlePreview
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.preference.UserPreferences
@@ -25,11 +31,13 @@ import org.jellyfin.androidtv.ui.preference.dsl.OptionsFragment
 import org.jellyfin.androidtv.ui.preference.dsl.checkbox
 import org.jellyfin.androidtv.ui.preference.dsl.colorList
 import org.jellyfin.androidtv.ui.preference.dsl.enum
+import org.jellyfin.androidtv.ui.preference.dsl.info
 import org.jellyfin.androidtv.ui.preference.dsl.link
 import org.jellyfin.androidtv.ui.preference.dsl.optionsScreen
 import org.jellyfin.androidtv.ui.preference.dsl.seekbar
 import org.jellyfin.preference.store.PreferenceStore
 import org.jellyfin.sdk.model.api.MediaSegmentType
+import org.jellyfin.androidtv.data.repository.UserViewsRepository
 import org.koin.android.ext.android.inject
 import java.util.Map.entry
 
@@ -37,9 +45,21 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 	private val userPreferences: UserPreferences by inject()
 	private val userSettingPreferences: UserSettingPreferences by inject()
 	private val mediaSegmentRepository: MediaSegmentRepository by inject()
+	private val userViewsRepository: UserViewsRepository by inject()
+	private val userViews by lazy {
+		userViewsRepository.views.stateIn(lifecycleScope, SharingStarted.Lazily, emptyList())
+	}
 
 	override val stores: Array<PreferenceStore<*, *>>
 		get() = arrayOf(userSettingPreferences)
+
+	override fun onCreate(savedInstanceState: Bundle?) {
+		super.onCreate(savedInstanceState)
+
+		userViews.onEach {
+			rebuild()
+		}.launchIn(lifecycleScope)
+	}
 
 	override val screen by optionsScreen {
 		setTitle(R.string.pref_playback)
@@ -369,6 +389,12 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 			category {
 				setTitle(R.string.pref_stream_filters)
 
+				checkbox {
+					setTitle(R.string.pref_stream_remove_duplicates)
+					setContent(R.string.pref_stream_remove_duplicates_description)
+					bind(userPreferences, UserPreferences.streamRemoveDuplicates)
+				}
+
 				enum<StreamMinSizeMovies> {
 					setTitle(R.string.pref_stream_min_size_movies)
 					bind(userPreferences, UserPreferences.streamMinSizeMovies)
@@ -388,6 +414,50 @@ class PlaybackPreferencesScreen : OptionsFragment() {
 					setTitle(R.string.pref_stream_max_size_episodes)
 					bind(userPreferences, UserPreferences.streamMaxSizeEpisodes)
 				}
+			}
+		}
+
+		category {
+			setTitle(R.string.pref_anime_library_setup)
+
+			checkbox {
+				setTitle(R.string.pref_anime_endpoint_enabled)
+				setContent(R.string.pref_anime_endpoint_enabled_description)
+				bind(userPreferences, UserPreferences.animeEndpointEnabled)
+			}
+
+			checkbox {
+				setTitle(R.string.pref_show_set_anime_library_button)
+				setContent(R.string.pref_show_set_anime_library_button_description)
+				bind(userPreferences, UserPreferences.showSetAnimeLibraryButton)
+				depends { userPreferences[UserPreferences.animeEndpointEnabled] }
+			}
+
+			info {
+				title = "Current Library Name"
+				setContent {
+					val currentLibraryId = userPreferences[UserPreferences.animeLibraryId]
+					if (currentLibraryId.isNotEmpty()) {
+						val library = userViews.value.find { it.id.toString() == currentLibraryId }
+						library?.name ?: "Unknown Library"
+					} else {
+						"Not set"
+					}
+				}
+				depends { userPreferences[UserPreferences.animeEndpointEnabled] }
+			}
+
+			info {
+				title = "Current Library ID"
+				setContent {
+					val currentLibraryId = userPreferences[UserPreferences.animeLibraryId]
+					if (currentLibraryId.isNotEmpty()) {
+						currentLibraryId
+					} else {
+						"Not set"
+					}
+				}
+				depends { userPreferences[UserPreferences.animeEndpointEnabled] }
 			}
 		}
 	}

@@ -17,8 +17,6 @@ import java.util.regex.Pattern
 class TorrentioApi(private val userPreferences: UserPreferences) {
 	companion object {
 		private const val BASE_URL = "https://torrentio.strem.fun"
-		private const val PROVIDERS = "yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,rutor,rutracker"
-		private const val DEBRID_OPTIONS = "nodownloadlinks"
 	}
 
 	/**
@@ -27,13 +25,15 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 	 * @param isMovie true for movies, false for TV shows
 	 * @param seasonNumber Season number (only for TV shows)
 	 * @param episodeNumber Episode number (only for TV shows)
+	 * @param isAnime true to use the anime endpoint instead of series (only applies to TV shows)
 	 * @return List of parsed stream data
 	 */
 	suspend fun getStreams(
 		imdbId: String,
 		isMovie: Boolean,
 		seasonNumber: Int = 0,
-		episodeNumber: Int = 0
+		episodeNumber: Int = 0,
+		isAnime: Boolean = false
 	): List<StreamData> = withContext(Dispatchers.IO) {
 		if (imdbId.isEmpty()) {
 			Timber.e("[TorrentioApi] Error: IMDB ID is required")
@@ -48,8 +48,13 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 		val premiumizeKey = userPreferences[UserPreferences.premiumizeApiKey]
 		val premiumizeParam = if (premiumizeKey.isNotEmpty()) premiumizeKey else ""
 
-		val mediaType = if (isMovie) "movie" else "series"
-		var endpoint = "$BASE_URL/providers=$PROVIDERS|debridoptions=$DEBRID_OPTIONS|premiumize=$premiumizeParam/stream/$mediaType/$imdbId"
+		// For movies, always use "movie". For TV shows, use "anime" if isAnime is true, otherwise "series"
+		val mediaType = when {
+			isMovie -> "movie"
+			isAnime -> "anime"
+			else -> "series"
+		}
+		var endpoint = "$BASE_URL/debridoptions=nodownloadlinks%7Cpremiumize=$premiumizeParam/stream/$mediaType/$imdbId"
 
 		if (!isMovie) {
 			endpoint += ":$seasonNumber:$episodeNumber"
@@ -57,7 +62,7 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 
 		endpoint += ".json"
 
-		Timber.d("[TorrentioApi] Request URL: $endpoint")
+		Timber.d("[TorrentioApi] Request URL: $endpoint (mediaType: $mediaType, isAnime: $isAnime)")
 
 		try {
 			val url = URL(endpoint)
@@ -137,14 +142,31 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 		val title = stream.title ?: ""
 		val name = stream.name ?: ""
 		val filename = stream.behaviorHints?.filename ?: ""
+		val bingeGroup = stream.behaviorHints?.bingeGroup ?: ""
 
+		// Parse bingeGroup into tokens for metadata extraction
+		// Movies: "torrentio|4k|BluRay REMUX|hevc|DV" - rich metadata
+		// TV Episodes: "torrentio|hash" - often just a hash, less useful
+		val bingeTokens = bingeGroup.split("|").map { it.trim().lowercase() }
+		val hasBingeMetadata = bingeTokens.size > 2 && !bingeTokens[1].matches(Regex("[a-f0-9]{32,}"))
+
+		// Extract quality from name first, then bingeGroup
 		var quality = "unknown"
 		val qualityPattern = Pattern.compile("(\\d+p|4K)", Pattern.CASE_INSENSITIVE)
 		val qualityMatcher = qualityPattern.matcher(name)
 		if (qualityMatcher.find()) {
 			quality = qualityMatcher.group(1).lowercase()
+		} else if (hasBingeMetadata) {
+			// Try bingeGroup tokens
+			for (token in bingeTokens) {
+				if (token.matches(Regex("\\d+p")) || token == "4k") {
+					quality = token
+					break
+				}
+			}
 		}
 
+		// Extract seeds from title
 		var seeds = 0
 		val seedsPattern = Pattern.compile("👤\\s*(\\d+)")
 		val seedsMatcher = seedsPattern.matcher(title)
@@ -152,6 +174,7 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 			seeds = seedsMatcher.group(1).toIntOrNull() ?: 0
 		}
 
+		// Extract file size from title
 		var fileSize = "Unknown"
 		val sizePattern = Pattern.compile("💾\\s*([\\d.]+)\\s*(GB|MB|GiB|MiB)")
 		val sizeMatcher = sizePattern.matcher(title)
@@ -159,24 +182,36 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 			fileSize = "${sizeMatcher.group(1)} ${sizeMatcher.group(2)}"
 		}
 
+		// Extract source from title
 		var source = "Torrentio"
-		val sourcePattern = Pattern.compile("⚙️\\s*(.+)$")
+		val sourcePattern = Pattern.compile("⚙️\\s*(.+)$", Pattern.MULTILINE)
 		val sourceMatcher = sourcePattern.matcher(title)
 		if (sourceMatcher.find()) {
 			source = sourceMatcher.group(1).trim()
 		}
 
+		// Detect HDR formats from bingeGroup, name, and filename
 		val hdrFormats = mutableListOf<String>()
 		val filenameLower = filename.lowercase()
+		val nameLower = name.lowercase()
+		val combinedText = "$nameLower $filenameLower ${bingeTokens.joinToString(" ")}"
 
-		if (Pattern.compile("\\b(dolby.?vision|dv)\\b", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
+		// Check for Dolby Vision
+		if (Pattern.compile("\\b(dolby.?vision|dv)\\b", Pattern.CASE_INSENSITIVE).matcher(combinedText).find() ||
+			bingeTokens.contains("dv")) {
 			hdrFormats.add("Dolby Vision")
 		}
-		if (Pattern.compile("\\bhdr.?10.?\\+|\\bhdr.?10.?plus\\b", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
+		// Check for HDR10+
+		if (Pattern.compile("\\bhdr.?10.?\\+|\\bhdr.?10.?plus\\b", Pattern.CASE_INSENSITIVE).matcher(combinedText).find()) {
 			hdrFormats.add("HDR10+")
-		} else if (Pattern.compile("\\bhdr.?10\\b", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
-			hdrFormats.add("HDR10")
-		} else if (Pattern.compile("\\bhdr\\b|\\.hdr\\.", Pattern.CASE_INSENSITIVE).matcher(filenameLower).find()) {
+		}
+		// Check for HDR10
+		if (bingeTokens.contains("hdr10") || combinedText.contains("hdr10")) {
+			if ("HDR10" !in hdrFormats && "HDR10+" !in hdrFormats) hdrFormats.add("HDR10")
+		}
+		// Check for generic HDR
+		if (hdrFormats.isEmpty() && (bingeTokens.contains("hdr") ||
+			Pattern.compile("\\bhdr\\b|\\.hdr\\.", Pattern.CASE_INSENSITIVE).matcher(combinedText).find())) {
 			hdrFormats.add("HDR")
 		}
 
@@ -184,14 +219,69 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 			hdrFormats.add("SDR")
 		}
 
+		// Extract codec from bingeGroup, then filename
 		var codec = "unknown"
-		val codecPattern = Pattern.compile("(?i)(x264|x265|HEVC|AVC|AV1)")
-		val codecMatcher = codecPattern.matcher(filename)
-		if (codecMatcher.find()) {
-			codec = codecMatcher.group(1)
+		val codecTokens = listOf("hevc", "x265", "avc", "x264", "av1", "h265", "h264")
+		if (hasBingeMetadata) {
+			for (token in bingeTokens) {
+				if (token in codecTokens) {
+					codec = token
+					break
+				}
+			}
+		}
+		if (codec == "unknown") {
+			val codecPattern = Pattern.compile("(?i)(x264|x265|HEVC|AVC|AV1|H\\.?265|H\\.?264)")
+			val codecMatcher = codecPattern.matcher(filename)
+			if (codecMatcher.find()) {
+				codec = codecMatcher.group(1)
+			}
 		}
 
-		val isAtmos = "atmos" in filenameLower
+		// Extract release quality from bingeGroup, then filename
+		var release = "unknown"
+		val releaseTokens = mapOf(
+			"bluray" to "BLURAY",
+			"blu-ray" to "BLURAY",
+			"bluray remux" to "REMUX",
+			"remux" to "REMUX",
+			"web-dl" to "WEB-DL",
+			"webdl" to "WEB-DL",
+			"webrip" to "WEBRIP",
+			"hdtv" to "HDTV",
+			"bdrip" to "BDRIP",
+			"brrip" to "BRRIP",
+			"dvdrip" to "DVDRIP",
+			"hdrip" to "HDRIP",
+			"bdmux" to "BDMUX",
+			"telesync" to "TS"
+		)
+		if (hasBingeMetadata) {
+			for (token in bingeTokens) {
+				if (releaseTokens.containsKey(token)) {
+					release = releaseTokens[token]!!
+					break
+				}
+			}
+		}
+		if (release == "unknown") {
+			val releasePattern = Pattern.compile("(?i)(BluRay|WEB-DL|HDTV|REMUX|WEBRip|BDRip|BRRip|DVDRip|HDRip|BDMUX|TeleSync)")
+			val releaseMatcher = releasePattern.matcher("$filename $title")
+			if (releaseMatcher.find()) {
+				release = releaseMatcher.group(1).uppercase()
+			}
+		}
+
+		// Detect Atmos from filename and title
+		val isAtmos = "atmos" in combinedText
+
+		// Extract audio channels from filename or title
+		var audioChannels = 2
+		val channelPattern = Pattern.compile("(\\d+)\\.(\\d+)")
+		val channelMatcher = channelPattern.matcher("$filename $title")
+		if (channelMatcher.find()) {
+			audioChannels = channelMatcher.group(1).toIntOrNull() ?: 2
+		}
 
 		return StreamData(
 			id = url,
@@ -206,7 +296,9 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 			provider = "Torrentio",
 			hdrFormats = hdrFormats,
 			codec = codec,
-			isAtmos = isAtmos
+			isAtmos = isAtmos,
+			release = release,
+			audioChannels = audioChannels
 		)
 	}
 
@@ -225,7 +317,8 @@ class TorrentioApi(private val userPreferences: UserPreferences) {
 
 	@Serializable
 	private data class BehaviorHints(
-		val filename: String? = null
+		val filename: String? = null,
+		val bingeGroup: String? = null
 	)
 }
 

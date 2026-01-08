@@ -49,28 +49,6 @@ import org.jellyfin.sdk.model.api.request.GetUpcomingEpisodesRequest
 import timber.log.Timber
 import kotlin.math.min
 
-/**
- * Custom BaseRowItem that strips number prefixes from library names for display
- */
-class LibraryBaseRowItem(
-	item: BaseItemDto,
-	preferParentThumb: Boolean = false,
-	staticHeight: Boolean = false,
-	selectAction: BaseRowItemSelectAction = BaseRowItemSelectAction.ShowDetails,
-	preferSeriesPoster: Boolean = false,
-) : BaseItemDtoBaseRowItem(item, preferParentThumb, staticHeight, selectAction, preferSeriesPoster) {
-
-	override fun getName(context: Context): String? {
-		// Get the base name
-		val baseName = super.getName(context) ?: return null
-
-		// Strip number prefix from display name if present
-		val strippedName = Regex("^\\d+(.+)").find(baseName)?.groupValues?.get(1)?.trim() ?: baseName
-
-		return strippedName
-	}
-}
-
 fun <T : Any> ItemRowAdapter.setItems(
 	items: Collection<T>,
 	transform: (T, Int) -> BaseRowItem?,
@@ -200,8 +178,15 @@ fun ItemRowAdapter.retrieveLatestMedia(api: ApiClient, query: GetLatestMediaRequ
 				api.userLibraryApi.getLatestMedia(query).content
 			}
 
+			// Strip number prefixes from latest media item names for consistent display
+			val processedResponse = response.map { item ->
+				item.copy(name = item.name?.let { name ->
+					Regex("^\\d+(.+)").find(name)?.groupValues?.get(1)?.trim() ?: name
+				})
+			}
+
 			setItems(
-				items = response,
+				items = processedResponse,
 				transform = { item, _ ->
 					BaseItemDtoBaseRowItem(
 						item,
@@ -213,7 +198,7 @@ fun ItemRowAdapter.retrieveLatestMedia(api: ApiClient, query: GetLatestMediaRequ
 				}
 			)
 
-			if (response.isEmpty()) removeRow()
+			if (processedResponse.isEmpty()) removeRow()
 		}.fold(
 			onSuccess = { notifyRetrieveFinished() },
 			onFailure = { error -> notifyRetrieveFinished(error as? Exception) }
@@ -312,7 +297,14 @@ fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserVi
 				}
 			} + playlistsItems
 
-			// Create a search item to add at the beginning
+			// Strip number prefixes from display names while preserving sort order
+			val processedItems = sortedAndProcessedItems.map { item ->
+				item.copy(name = item.name?.let { name ->
+					Regex("^\\d+(.+)").find(name)?.groupValues?.get(1)?.trim() ?: name
+				})
+			}
+
+			// Create a search item to add at the end
 			val searchItem = BaseItemDto(
 				id = UUID.fromString("12345678-1234-1234-1234-123456789abc"),
 				name = "Search",
@@ -322,8 +314,8 @@ fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserVi
 				displayPreferencesId = "search-item"
 			)
 
-			// Always prepend search item to the list (it will replace any existing search item)
-			val itemsWithSearch = listOf(searchItem) + sortedAndProcessedItems
+			// Always append search item to the end of the list (it will replace any existing search item)
+			val itemsWithSearch = processedItems + listOf(searchItem)
 
 			// Clear existing items before setting new ones to ensure clean refresh
 			clear()
@@ -331,12 +323,11 @@ fun ItemRowAdapter.retrieveUserViews(api: ApiClient, userViewsRepository: UserVi
 			setItems(
 				items = itemsWithSearch,
 				transform = { item, _ ->
-					val rowItem = LibraryBaseRowItem(item)
-					rowItem
+					BaseItemDtoBaseRowItem(item)
 				}
 			)
 
-			if (sortedAndProcessedItems.isEmpty()) removeRow()
+			if (processedItems.isEmpty()) removeRow()
 		}.fold(
 			onSuccess = { notifyRetrieveFinished() },
 			onFailure = { error -> notifyRetrieveFinished(error as? Exception) }
@@ -833,10 +824,15 @@ fun ItemRowAdapter.refreshItem(
 				// Item could be removed while API was loading, check if the index is valid first
 				if (index == -1) return@fold
 
+				// Strip number prefix from the refreshed item name to match bulk load behavior
+				val processedItem = refreshedBaseItem.copy(name = refreshedBaseItem.name?.let { name ->
+					Regex("^\\d+(.+)").find(name)?.groupValues?.get(1)?.trim() ?: name
+				})
+
 				set(
 					index = index,
 					element = BaseItemDtoBaseRowItem(
-						item = refreshedBaseItem,
+						item = processedItem,
 						preferParentThumb = currentBaseRowItem.preferParentThumb,
 						staticHeight = currentBaseRowItem.staticHeight,
 						selectAction = currentBaseRowItem.selectAction,

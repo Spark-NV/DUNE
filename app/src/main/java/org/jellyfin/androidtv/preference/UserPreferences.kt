@@ -432,6 +432,27 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		var streamMinSizeEpisodes = enumPreference("stream_min_size_episodes", StreamMinSizeEpisodes.DISABLED)
 		var streamMaxSizeEpisodes = enumPreference("stream_max_size_episodes", StreamMaxSizeEpisodes.DISABLED)
 
+		/**
+		 * Remove duplicate streams across providers (based on filename)
+		 */
+		var streamRemoveDuplicates = booleanPreference("stream_remove_duplicates", true)
+
+		/* Anime Library Setup */
+		/**
+		 * Enable anime endpoint searching (uses both anime and series endpoints for anime content)
+		 */
+		var animeEndpointEnabled = booleanPreference("anime_endpoint_enabled", false)
+
+		/**
+		 * Show the "Set Anime Library" button on the full details screen
+		 */
+		var showSetAnimeLibraryButton = booleanPreference("show_set_anime_library_button", false)
+
+		/**
+		 * Selected anime shows library ID
+		 */
+		var animeLibraryId = stringPreference("anime_library_id", "")
+
 	}
 
 	init {

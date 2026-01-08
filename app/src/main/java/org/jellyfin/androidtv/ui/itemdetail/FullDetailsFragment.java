@@ -859,6 +859,7 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
     DetailButton moreButton;
     DetailButton playButton = null;
     DetailButton trailerButton = null;
+    DetailButton setAnimeLibraryButton = null;
 
     // Play button state for loading animation
     private int playButtonOriginalIcon = R.drawable.ic_play;
@@ -1107,6 +1108,18 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
                     }
                 });
                 mDetailsOverviewRow.addAction(mPlaylistsButton);
+
+                // Add "Set Anime Library" button if enabled in settings
+                boolean showAnimeLibraryButton = userPreferences.getValue().get(UserPreferences.Companion.getShowSetAnimeLibraryButton());
+                if (showAnimeLibraryButton) {
+                    setAnimeLibraryButton = DetailButton.create(requireContext(), R.drawable.ic_folder, getString(R.string.lbl_set_anime_library), new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            setAnimeLibraryFromCurrentItem();
+                        }
+                    });
+                    mDetailsOverviewRow.addAction(setAnimeLibraryButton);
+                }
             }
         }
 
@@ -1257,6 +1270,7 @@ public class FullDetailsFragment extends Fragment implements RecordingIndicatorV
         if (mWatchedToggleButton != null) actionsList.add(mWatchedToggleButton);
         if (mCollectionsButton != null) actionsList.add(mCollectionsButton);
         if (mPlaylistsButton != null) actionsList.add(mPlaylistsButton);
+        if (setAnimeLibraryButton != null) actionsList.add(setAnimeLibraryButton);
         // Removed: mPrevButton reference (button no longer created)
         // if (mPrevButton != null) actionsList.add(mPrevButton);
         if (deleteButton != null) actionsList.add(deleteButton);
@@ -2038,5 +2052,135 @@ private static class CollectionResult {
                 }
             }
         }.execute();
+    }
+
+    /**
+     * Set the anime library from the current item by traversing up the parent chain
+     * to find the top-level library (CollectionFolder).
+     */
+    private void setAnimeLibraryFromCurrentItem() {
+        if (mBaseItem == null) {
+            Utils.showToast(requireContext(), "Item not available");
+            return;
+        }
+
+        Utils.showToast(requireContext(), "Finding library...");
+
+        // Get the series item if this is an episode
+        UUID itemToCheck = mBaseItem.getId();
+        if (mBaseItem.getType() == BaseItemKind.EPISODE && mBaseItem.getSeriesId() != null) {
+            itemToCheck = mBaseItem.getSeriesId();
+        }
+
+        final UUID finalItemToCheck = itemToCheck;
+
+        // Get current user for API calls
+        org.jellyfin.sdk.model.api.UserDto currentUser = KoinJavaComponent.<org.jellyfin.androidtv.auth.repository.UserRepository>get(org.jellyfin.androidtv.auth.repository.UserRepository.class).getCurrentUser().getValue();
+        if (currentUser == null || currentUser.getId() == null) {
+            Utils.showToast(requireContext(), "User not available");
+            return;
+        }
+
+        // Use AsyncTask to traverse parent chain
+        new android.os.AsyncTask<Void, Void, AnimeLibraryResult>() {
+            @Override
+            protected AnimeLibraryResult doInBackground(Void... voids) {
+                try {
+                    org.jellyfin.sdk.api.client.ApiClient apiClient = api.getValue();
+                    String baseUrl = apiClient.getBaseUrl();
+                    String accessToken = apiClient.getAccessToken();
+
+                    // First, get the item we're checking
+                    String userId = currentUser.getId().toString();
+                    String itemUrl = baseUrl + "/Users/" + userId + "/Items/" + finalItemToCheck.toString();
+                    org.json.JSONObject itemJson = makeApiRequest(itemUrl, accessToken);
+
+                    if (itemJson == null) {
+                        Timber.e("Failed to fetch item: %s", finalItemToCheck);
+                        return null;
+                    }
+
+                    String currentParentId = itemJson.optString("ParentId", null);
+                    String lastValidName = null;
+                    String lastValidId = null;
+                    int depth = 0;
+                    int maxDepth = 15;
+
+                    Timber.d("[SetAnimeLibrary] Starting from item: %s, parentId: %s", 
+                        itemJson.optString("Name"), currentParentId);
+
+                    // Traverse up the parent chain until we find a CollectionFolder or run out of parents
+                    while (currentParentId != null && !currentParentId.isEmpty() && depth < maxDepth) {
+                        String parentUrl = baseUrl + "/Users/" + userId + "/Items/" + currentParentId;
+                        org.json.JSONObject parentJson = makeApiRequest(parentUrl, accessToken);
+
+                        if (parentJson == null) {
+                            Timber.w("Failed to fetch parent at depth %d: %s", depth, currentParentId);
+                            break;
+                        }
+
+                        String parentType = parentJson.optString("Type", "");
+                        String parentName = parentJson.optString("Name", "Unknown");
+                        String parentId = parentJson.optString("Id", "");
+
+                        Timber.d("[SetAnimeLibrary] Depth %d: name='%s', type='%s', id='%s'", 
+                            depth, parentName, parentType, parentId);
+
+                        // Keep track of the last valid parent (we want the top-level library)
+                        lastValidName = parentName;
+                        lastValidId = parentId;
+
+                        // Check if this is a CollectionFolder (library)
+                        if ("CollectionFolder".equals(parentType) || "UserView".equals(parentType)) {
+                            Timber.d("[SetAnimeLibrary] Found library: %s (%s)", parentName, parentId);
+                            return new AnimeLibraryResult(parentName, parentId);
+                        }
+
+                        // Move up to the next parent
+                        currentParentId = parentJson.optString("ParentId", null);
+                        depth++;
+                    }
+
+                    // If we didn't find a CollectionFolder but have a valid last parent, use that
+                    if (lastValidId != null && lastValidName != null) {
+                        Timber.d("[SetAnimeLibrary] Using last valid parent as library: %s (%s)", lastValidName, lastValidId);
+                        return new AnimeLibraryResult(lastValidName, lastValidId);
+                    }
+
+                    return null;
+
+                } catch (Exception e) {
+                    Timber.e(e, "Error finding anime library");
+                    return null;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(AnimeLibraryResult result) {
+                if (result == null || result.id == null) {
+                    Utils.showToast(requireContext(), "Could not find library for this item");
+                    return;
+                }
+
+                // Save the library ID to preferences
+                userPreferences.getValue().set(UserPreferences.Companion.getAnimeLibraryId(), result.id);
+
+                // Show toast with library name and ID
+                String message = getString(R.string.msg_anime_library_set, result.name, result.id);
+                Utils.showToast(requireContext(), message);
+
+                Timber.d("[SetAnimeLibrary] Saved anime library: %s (%s)", result.name, result.id);
+            }
+        }.execute();
+    }
+
+    private static class AnimeLibraryResult {
+        String name;
+        String id;
+
+        AnimeLibraryResult(String name, String id) {
+            this.name = name;
+            this.id = id;
+        }
     }
 }

@@ -17,10 +17,8 @@
 ### LUMINA added features
 - Baked in torrentio and AIOStreams api handling
 - Removed internal player usage due to missing jellyfin server metadata
-- Added custom intents to send to a [custom justplayer fork](https://github.com/Spark-NV/Player/tree/Jellyfin/RELEASE) to allow for server playback tracking
+- Added custom intents to send to a [custom justplayer fork](https://github.com/Spark-NV/Jellyfin.Player/tree/main/compiled) to allow for server playback tracking
 - UI slightly slimmed down, options removed to be as simple as possible for the less tech litterate
-- Added a few new features such as a collections button on movie items to view which collections the movie belongs too, a new button to add movies to existing playlists or creating a new playlist.
-- Added a new option for the shelf on the home screen; New movie releases, this will get the latest releases from the server, helpful for those wanting to know newest releases.
 
 ## DUNE Key Features
 
@@ -73,6 +71,7 @@ cd DUNE-main
 ### Updating version
 ```
 app/src/main/java/org/jellyfin/androidtv/ui/preference/category/about.kt
+app/build.gradle.kts
 ```
 
 **Note:** This version uses package ID `Dune.lumina.tv` which allows it to be installed alongside the original Jellyfin app and the original DUNE app.
